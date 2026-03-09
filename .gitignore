@@ -1,0 +1,20 @@
+.DS_Store
+
+# Emscripten outputs
+blas_wasm/shell_cblas.html
+blas_wasm/shell_cblas.js
+blas_wasm/shell_cblas.wasm
+blas_wasm/shell_cblas.worker.js
+
+# OpenBLAS build outputs
+blas_wasm/OpenBLAS/*.a
+blas_wasm/OpenBLAS/*.o
+blas_wasm/OpenBLAS/**/*.o
+blas_wasm/OpenBLAS/config.h
+blas_wasm/OpenBLAS/config_last.h
+blas_wasm/OpenBLAS/Makefile.conf
+blas_wasm/OpenBLAS/Makefile.conf_last
+blas_wasm/OpenBLAS/getarch
+blas_wasm/OpenBLAS/getarch_2nd
+blas_wasm/OpenBLAS/lib.grd
+blas_wasm/OpenBLAS/**/*.tmp

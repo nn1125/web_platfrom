@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OPENBLAS_DIR="$SCRIPT_DIR/OpenBLAS"
+if command -v nproc >/dev/null 2>&1; then
+  JOBS="${JOBS:-$(nproc)}"
+elif command -v sysctl >/dev/null 2>&1; then
+  JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
+else
+  JOBS="${JOBS:-4}"
+fi
 
 # ── Clean option ────────────────────────────────────────────────────────
 if [[ "${1:-}" == "clean" ]]; then
@@ -14,10 +25,13 @@ if [[ "${1:-}" == "clean" ]]; then
     make -C "$OPENBLAS_DIR" clean 2>/dev/null || true
   fi
 
-  # Remove generated files (.wasm, .js, emcc html output)
-  # Source files use .mjs/.c/.html(shell template), so *.js and *.wasm are safe to glob
+  # Remove generated shell outputs only.
   echo "Removing generated files..."
-  rm -f "$SCRIPT_DIR"/*.wasm "$SCRIPT_DIR"/*.js "$SCRIPT_DIR"/shell_cblas.html
+  rm -f \
+    "$SCRIPT_DIR"/shell_cblas.html \
+    "$SCRIPT_DIR"/shell_cblas.js \
+    "$SCRIPT_DIR"/shell_cblas.wasm \
+    "$SCRIPT_DIR"/shell_cblas.worker.js
 
   echo "Clean complete!"
   exit 0
@@ -25,6 +39,12 @@ fi
 
 # ── 1. Build OpenBLAS with LAPACK + pthreads ────────────────────────────
 echo "=== Building OpenBLAS (CBLAS + C-LAPACK, threaded) ==="
+
+# Some OpenBLAS trees downloaded from chat apps/browsers carry quarantine xattrs on macOS.
+# That makes helper scripts (e.g. ./c_check) fail with "bad interpreter: Operation not permitted".
+if command -v xattr >/dev/null 2>&1; then
+  xattr -dr com.apple.quarantine "$OPENBLAS_DIR" 2>/dev/null || true
+fi
 
 emmake make -C "$OPENBLAS_DIR" \
   TARGET=GENERIC \
@@ -36,9 +56,9 @@ emmake make -C "$OPENBLAS_DIR" \
   NO_WARMUP=1 \
   BINARY=32 \
   CFLAGS="-pthread" \
-  libs netlib -j"$(nproc)"
+  libs netlib -j"$JOBS"
 
-LIBOPENBLAS="$(ls "$OPENBLAS_DIR"/libopenblas*.a 2>/dev/null | head -1)"
+LIBOPENBLAS="$(find "$OPENBLAS_DIR" -maxdepth 1 -type f -name 'libopenblas*.a' | sort | head -1)"
 if [[ -z "$LIBOPENBLAS" ]]; then
   echo "ERROR: libopenblas*.a not found after build" >&2
   exit 1
@@ -48,7 +68,9 @@ echo "Using library: $LIBOPENBLAS"
 # ── 2. Compile interactive shell → HTML + JS + WASM ─────────────────────
 echo "=== Compiling shell_cblas.c → shell_cblas.html ==="
 
-emcc -O2 \
+# Keep -O1 for shell link: current toolchain hits a wasm-opt validation error at -O2
+# when additional LAPACK routines are referenced.
+emcc -O1 \
   -I"$OPENBLAS_DIR" \
   "$SCRIPT_DIR/shell_cblas.c" \
   "$LIBOPENBLAS" \

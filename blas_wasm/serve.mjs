@@ -1,10 +1,11 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { extname, join } from 'node:path';
+import { extname, resolve, sep } from 'node:path';
 import { argv } from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 const PORT = parseInt(argv[2] || '8080', 10);
-const DIR = new URL('.', import.meta.url).pathname;
+const DIR = resolve(fileURLToPath(new URL('.', import.meta.url)));
 
 const MIME = {
   '.html': 'text/html',
@@ -16,8 +17,25 @@ const MIME = {
 };
 
 createServer(async (req, res) => {
-  const url = req.url === '/' ? '/shell_cblas.html' : req.url.split('?')[0];
-  const file = join(DIR, url);
+  const rawUrl = req.url === '/' ? '/shell_cblas.html' : req.url.split('?')[0];
+  let decodedPath;
+  try {
+    decodedPath = decodeURIComponent(rawUrl);
+  } catch {
+    res.writeHead(400);
+    res.end('Bad request');
+    return;
+  }
+
+  const relativePath = decodedPath.replace(/^\/+/, '');
+  const file = resolve(DIR, relativePath);
+  const inRoot = file === DIR || file.startsWith(DIR + sep);
+  if (!inRoot) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
   const ext = extname(file);
 
   // Required for SharedArrayBuffer (pthreads)
