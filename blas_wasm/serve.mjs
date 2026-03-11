@@ -5,7 +5,7 @@ import { argv } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const PORT = parseInt(argv[2] || '8080', 10);
-const DIR = resolve(fileURLToPath(new URL('.', import.meta.url)));
+const DIR = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
 const MIME = {
   '.html': 'text/html',
@@ -17,7 +17,7 @@ const MIME = {
 };
 
 createServer(async (req, res) => {
-  const rawUrl = req.url === '/' ? '/shell_cblas.html' : req.url.split('?')[0];
+  const rawUrl = req.url === '/' ? '/index.html' : req.url.split('?')[0];
   let decodedPath;
   try {
     decodedPath = decodeURIComponent(rawUrl);
@@ -47,6 +47,15 @@ createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
     res.end(data);
   } catch {
+    // SPA fallback: extensionless paths serve index.html
+    if (!ext) {
+      try {
+        const fallback = await readFile(resolve(DIR, 'index.html'));
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(fallback);
+        return;
+      } catch {}
+    }
     res.writeHead(404);
     res.end('Not found');
   }

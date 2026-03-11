@@ -4,17 +4,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IAP</title>
-    <link rel="stylesheet" href="./styles/main_page.css">
+    <link rel="stylesheet" href="./styles/app.css">
+    <link rel="stylesheet" href="./styles/gauss.css">
 </head>
 <body>
-    <main class="main">
-        <header class="header">
+
+<div class="view view--active" id="view-home">
+    <main class="hero-card">
+        <header>
             <h1>Interactive Algo Platform</h1>
         </header>
-        <p> IAP - веб-платформа нового поколения, предназначенная для глубокого изучения
-             и практического анализа алгоритмов в пространстве высокой размерности. </p> 
-        
-        <button class="button_next button_try">Перейти</button>    
+        <p>IAP — веб-платформа нового поколения, предназначенная для глубокого изучения
+           и практического анализа алгоритмов в пространстве высокой размерности.</p>
+        <button class="btn btn--accent" id="btn-try">Попробовать</button>
     </main>
+</div>
+
+<div class="view" id="view-algorithms">
+    <div class="page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back">&larr; Главная</button>
+            <h1>Алгоритмы</h1>
+        </header>
+
+        <section class="category category--teal">
+            <h2 class="category__title">Многомерные СЛАУ</h2>
+            <ul class="algo-list" data-group="slau"></ul>
+        </section>
+
+        <section class="category category--indigo">
+            <h2 class="category__title">Решение нелинейных систем</h2>
+            <ul class="algo-list" data-group="nonlinear"></ul>
+        </section>
+
+        <section class="category category--amber">
+            <h2 class="category__title">Аппроксимация и интерполяция</h2>
+            <ul class="algo-list" data-group="approx"></ul>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-gauss">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-gauss">&larr; Алгоритмы</button>
+            <h1>Метод Гаусса</h1>
+            <p class="subtitle">Решение СЛАУ Ax = b с выбором ведущего элемента по столбцу</p>
+        </header>
+
+        <div class="wasm-status" id="wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section" id="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="inp-size" value="3">
+                <button class="btn btn--ghost" id="btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="btn-example">Пример</button>
+            </div>
+
+            <div class="matrix-input-wrap">
+                <div>
+                    <h3>Матрица A</h3>
+                    <table class="matrix-table" id="matrix-a"></table>
+                </div>
+                <div class="eq-sign">&middot; x =</div>
+                <div>
+                    <h3>Вектор b</h3>
+                    <table class="matrix-table" id="vector-b"></table>
+                </div>
+            </div>
+
+            <button class="btn btn--accent" id="btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="output-section" id="output-section">
+            <h2>Процесс вычисления</h2>
+            <div class="steps" id="steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <h2 class="modal__title" id="modal-title"></h2>
+        <p class="modal__desc" id="modal-desc"></p>
+        <div class="modal__actions">
+            <button class="btn btn--accent" id="modal-try">Попробовать</button>
+            <button class="btn btn--ghost" id="modal-close">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+if (!crossOriginIsolated && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./coi-sw.js").then((reg) => {
+        if (reg.active && !navigator.serviceWorker.controller) {
+            location.reload();
+        } else if (!reg.active) {
+            reg.addEventListener("updatefound", () => {
+                const w = reg.installing;
+                w.addEventListener("statechange", () => {
+                    if (w.state === "activated") location.reload();
+                });
+            });
+        }
+    });
+}
+</script>
+
+<script src="./js/app.js"></script>
+<script src="./js/gauss.js"></script>
 </body>
 </html>
