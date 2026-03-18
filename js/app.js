@@ -1,3 +1,178 @@
+/* ── Theme Toggle ── */
+(function initTheme() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "light" ? null : "light";
+    if (next) {
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("theme", next);
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      localStorage.removeItem("theme");
+    }
+  });
+})();
+
+/* ── Hero Canvas Animation ── */
+(function initHeroCanvas() {
+  const canvas = document.getElementById("hero-canvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let w, h, cols, rows;
+  const CELL = 50;
+  const dots = [];
+  let mouse = { x: -1000, y: -1000 };
+  let raf;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.parentElement.getBoundingClientRect();
+    w = rect.width;
+    h = rect.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildGrid();
+  }
+
+  function buildGrid() {
+    dots.length = 0;
+    cols = Math.ceil(w / CELL) + 1;
+    rows = Math.ceil(h / CELL) + 1;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        dots.push({
+          ox: c * CELL,
+          oy: r * CELL,
+          x: c * CELL,
+          y: r * CELL,
+          vx: 0,
+          vy: 0
+        });
+      }
+    }
+  }
+
+  function getCanvasColors() {
+    const s = getComputedStyle(document.documentElement);
+    return {
+      line: s.getPropertyValue("--hero-canvas-line").trim(),
+      dot: s.getPropertyValue("--hero-canvas-dot").trim()
+    };
+  }
+
+  let canvasColors = getCanvasColors();
+
+  /* re-read colors when theme changes */
+  const mo = new MutationObserver(() => { canvasColors = getCanvasColors(); });
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+
+    /* update dot positions based on mouse proximity */
+    const RADIUS = 160;
+    for (const d of dots) {
+      const dx = d.ox - mouse.x;
+      const dy = d.oy - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < RADIUS) {
+        const force = (1 - dist / RADIUS) * 12;
+        d.vx += (dx / dist) * force * 0.08;
+        d.vy += (dy / dist) * force * 0.08;
+      }
+      d.vx += (d.ox - d.x) * 0.04;
+      d.vy += (d.oy - d.y) * 0.04;
+      d.vx *= 0.88;
+      d.vy *= 0.88;
+      d.x += d.vx;
+      d.y += d.vy;
+    }
+
+    const rgb = canvasColors.dot;
+
+    /* draw lines */
+    ctx.strokeStyle = canvasColors.line;
+    ctx.lineWidth = 0.5;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = r * cols + c;
+        const d = dots[i];
+        if (c < cols - 1) {
+          const right = dots[i + 1];
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(right.x, right.y);
+          ctx.stroke();
+        }
+        if (r < rows - 1) {
+          const below = dots[i + cols];
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(below.x, below.y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    /* draw dots */
+    for (const d of dots) {
+      const dx = d.x - mouse.x;
+      const dy = d.y - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const alpha = dist < RADIUS ? 0.15 + (1 - dist / RADIUS) * 0.5 : 0.08;
+      const size = dist < RADIUS ? 1.5 + (1 - dist / RADIUS) * 1.5 : 1;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${rgb},${alpha})`;
+      ctx.fill();
+    }
+
+    raf = requestAnimationFrame(draw);
+  }
+
+  canvas.parentElement.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+  });
+
+  canvas.parentElement.addEventListener("mouseleave", () => {
+    mouse.x = -1000;
+    mouse.y = -1000;
+  });
+
+  window.addEventListener("resize", resize);
+  resize();
+  draw();
+
+  /* stat counter animation */
+  const nums = document.querySelectorAll(".hero__stat-num");
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const target = parseInt(el.dataset.target, 10);
+      let current = 0;
+      const step = Math.max(1, Math.floor(target / 30));
+      const interval = setInterval(() => {
+        current += step;
+        if (current >= target) {
+          current = target;
+          clearInterval(interval);
+        }
+        el.textContent = current;
+      }, 35);
+      observer.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  nums.forEach((n) => observer.observe(n));
+})();
+
 /* ── Data ── */
 const algorithms = {
   slau: [
@@ -32,15 +207,33 @@ const groupColor = { slau: "teal", nonlinear: "indigo", approx: "amber" };
 
 /* ── Views ── */
 const views = {
-  home:  document.getElementById("view-home"),
-  algos: document.getElementById("view-algorithms"),
-  gauss: document.getElementById("view-gauss")
+  home:     document.getElementById("view-home"),
+  algos:    document.getElementById("view-algorithms"),
+  gauss:    document.getElementById("view-gauss"),
+  lu:       document.getElementById("view-lu"),
+  qr:       document.getElementById("view-qr"),
+  cholesky: document.getElementById("view-cholesky"),
+  jacobi:   document.getElementById("view-jacobi"),
+  seidel:   document.getElementById("view-seidel"),
+  sor:      document.getElementById("view-sor"),
+  minres:   document.getElementById("view-minres"),
+  bicg:     document.getElementById("view-bicg"),
+  gmres:    document.getElementById("view-gmres")
 };
 
 const viewPaths = {
   "view-home": "/",
   "view-algorithms": "/algorithms",
-  "view-gauss": "/gauss"
+  "view-gauss": "/gauss",
+  "view-lu": "/lu",
+  "view-qr": "/qr",
+  "view-cholesky": "/cholesky",
+  "view-jacobi": "/jacobi",
+  "view-seidel": "/seidel",
+  "view-sor": "/sor",
+  "view-minres": "/minres",
+  "view-bicg": "/bicg",
+  "view-gmres": "/gmres"
 };
 
 /* ── DOM refs ── */
@@ -98,7 +291,16 @@ Object.entries(algorithms).forEach(([group, items]) => {
 
 /* ── Algorithm view routes ── */
 const algoViews = {
-  "Метод Гаусса": "gauss"
+  "Метод Гаусса": "gauss",
+  "LU-разложение": "lu",
+  "QR-разложение": "qr",
+  "Метод Холецкого": "cholesky",
+  "Метод Якоби": "jacobi",
+  "Метод Зейделя": "seidel",
+  "Метод сверхрелаксации (SOR)": "sor",
+  "Метод минимальных невязок": "minres",
+  "Метод би-сопряжённых градиентов": "bicg",
+  "GMRES": "gmres"
 };
 
 /* ── Modal ── */
@@ -125,25 +327,67 @@ document.getElementById("modal-try").addEventListener("click", () => {
     const viewKey = algoViews[currentAlgo.name];
     closeModal();
     navigate(views[viewKey]);
-    if (viewKey === "gauss" && typeof initGauss === "function") {
-      initGauss();
-    }
+    if (viewKey === "gauss" && typeof initGauss === "function") initGauss();
+    if (viewKey === "lu" && typeof initLU === "function") initLU();
+    if (viewKey === "qr" && typeof initQR === "function") initQR();
+    if (viewKey === "cholesky" && typeof initCholesky === "function") initCholesky();
+    if (viewKey === "jacobi" && typeof initJacobi === "function") initJacobi();
+    if (viewKey === "seidel" && typeof initSeidel === "function") initSeidel();
+    if (viewKey === "sor" && typeof initSOR === "function") initSOR();
+    if (viewKey === "minres" && typeof initMinRes === "function") initMinRes();
+    if (viewKey === "bicg" && typeof initBiCG === "function") initBiCG();
+    if (viewKey === "gmres" && typeof initGMRES === "function") initGMRES();
   } else {
     closeModal();
   }
 });
 
+/* ── Category filter ── */
+const categoryGroups = ["slau", "nonlinear", "approx"];
+
+function showCategories(filter) {
+  document.querySelectorAll("#view-algorithms .category").forEach((sec) => {
+    const group = sec.querySelector(".algo-list")?.dataset.group;
+    sec.style.display = (!filter || group === filter) ? "" : "none";
+  });
+}
+
+/* ── Hero card clicks ── */
+const cardFilters = ["slau", "nonlinear", "approx"];
+document.querySelectorAll(".hero__card").forEach((card, i) => {
+  card.addEventListener("click", () => {
+    showCategories(cardFilters[i]);
+    navigate(views.algos);
+  });
+});
+
 /* ── Navigation buttons ── */
-document.getElementById("btn-try").addEventListener("click",  () => navigate(views.algos));
+document.getElementById("btn-try").addEventListener("click",  () => { showCategories(null); navigate(views.algos); });
 document.getElementById("btn-back").addEventListener("click", () => navigate(views.home));
 document.getElementById("btn-back-gauss").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-lu").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-qr").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-cholesky").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-jacobi").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-seidel").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-sor").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-minres").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-bicg").addEventListener("click", () => navigate(views.algos));
+document.getElementById("btn-back-gmres").addEventListener("click", () => navigate(views.algos));
 
 /* ── Handle direct URL entry ── */
 const initial = viewForPath(location.pathname);
 if (initial !== views.home) {
   views.home.classList.remove("view--active");
   initial.classList.add("view--active");
-  if (initial === views.gauss && typeof initGauss === "function") {
-    initGauss();
-  }
+  if (initial === views.gauss && typeof initGauss === "function") initGauss();
+  if (initial === views.lu && typeof initLU === "function") initLU();
+  if (initial === views.qr && typeof initQR === "function") initQR();
+  if (initial === views.cholesky && typeof initCholesky === "function") initCholesky();
+  if (initial === views.jacobi && typeof initJacobi === "function") initJacobi();
+  if (initial === views.seidel && typeof initSeidel === "function") initSeidel();
+  if (initial === views.sor && typeof initSOR === "function") initSOR();
+  if (initial === views.minres && typeof initMinRes === "function") initMinRes();
+  if (initial === views.bicg && typeof initBiCG === "function") initBiCG();
+  if (initial === views.gmres && typeof initGMRES === "function") initGMRES();
 }

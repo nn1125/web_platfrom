@@ -1,5 +1,14 @@
-/* ── Gauss view override (align top, not center) ── */
-#view-gauss.view--active {
+/* ── Algo view override (align top, not center) ── */
+#view-gauss.view--active,
+#view-lu.view--active,
+#view-qr.view--active,
+#view-cholesky.view--active,
+#view-jacobi.view--active,
+#view-seidel.view--active,
+#view-sor.view--active,
+#view-minres.view--active,
+#view-bicg.view--active,
+#view-gmres.view--active {
     align-items: flex-start;
 }
 
@@ -18,10 +27,11 @@
 .gauss-page .page__header h1 {
     font-size: clamp(1.4rem, 3.5vw, 1.8rem);
     margin-bottom: 0.25rem;
+    color: var(--text-heading);
 }
 
 .subtitle {
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 0.95rem;
 }
 
@@ -32,8 +42,9 @@
     gap: 0.5rem;
     padding: 0.75rem 1rem;
     border-radius: 10px;
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--amber-dim);
+    border: 1px solid rgba(180,83,9,0.2);
+    color: var(--amber);
     font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 1.5rem;
@@ -41,14 +52,15 @@
 }
 
 .wasm-status.loaded {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--teal-dim);
+    border-color: rgba(15,118,110,0.2);
+    color: var(--teal);
 }
 
 .spinner {
     width: 16px;
     height: 16px;
-    border: 2px solid #d97706;
+    border: 2px solid var(--amber);
     border-top-color: transparent;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -60,12 +72,13 @@
 
 /* ── Input section ── */
 .input-section {
-    background: var(--card);
-    border: 1px solid #d9e0e5;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(16px);
+    transition: background 0.3s, border-color 0.3s;
 }
 
 .size-row {
@@ -79,17 +92,27 @@
 .size-row label {
     font-weight: 600;
     font-size: 0.95rem;
+    color: var(--text);
 }
 
 .size-row input {
     width: 60px;
     padding: 0.4rem 0.5rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border);
     border-radius: 8px;
     font: inherit;
     font-size: 0.95rem;
     text-align: center;
+    background: var(--ghost-bg);
+    color: var(--text-heading);
     -moz-appearance: textfield;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.size-row input:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 2px var(--teal-dim);
 }
 
 .size-row input::-webkit-inner-spin-button,
@@ -108,7 +131,7 @@
 
 .matrix-input-wrap h3 {
     font-size: 0.85rem;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 0.5rem;
     font-weight: 600;
 }
@@ -116,7 +139,7 @@
 .eq-sign {
     font-size: 1.3rem;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--text-muted);
     padding-top: 1.2rem;
 }
 
@@ -131,21 +154,206 @@
 .matrix-table input {
     width: 64px;
     padding: 0.35rem 0.4rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border);
     border-radius: 6px;
     font: inherit;
     font-size: 0.9rem;
     text-align: center;
-    transition: border-color 0.15s;
+    background: var(--ghost-bg);
+    color: var(--text-heading);
+    transition: border-color 0.15s, background 0.15s;
 }
 
 .matrix-table input:focus {
     outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15);
+    border-color: var(--teal);
+    box-shadow: 0 0 0 2px var(--teal-dim);
 }
 
-/* ── Output section ── */
+/* ══════════════════════════════════════════════════════
+   Interactive Matrix Section
+   ══════════════════════════════════════════════════════ */
+.interactive-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(16px);
+    transition: background 0.3s, border-color 0.3s;
+}
+
+.interactive-section h2 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: var(--text-heading);
+}
+
+.imat-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.imat-status {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--teal);
+    min-height: 1.4em;
+}
+
+.imat-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.imat-speed-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.imat-speed-label select {
+    padding: 0.25rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 0.85rem;
+    background: var(--ghost-bg);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.imat-skip-btn {
+    font-size: 0.85rem !important;
+    padding: 0.3rem 0.75rem !important;
+}
+
+/* Operation label (formula display) */
+.imat-op-label {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.9rem;
+    color: var(--teal);
+    min-height: 1.5em;
+    margin-bottom: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    background: var(--teal-dim);
+    border-radius: 8px;
+    border: 1px solid rgba(15,118,110,0.12);
+    transition: background 0.3s;
+}
+
+.imat-op-label:empty {
+    display: none;
+}
+
+/* Interactive matrix table */
+.imat-container {
+    overflow-x: auto;
+    padding: 0.5rem 0;
+}
+
+.imat-table {
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.95rem;
+    margin: 0 auto;
+    color: var(--text);
+}
+
+.imat-row {
+    position: relative;
+}
+
+.imat-label {
+    padding: 0.45rem 0.6rem;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    user-select: none;
+}
+
+.imat-cell {
+    padding: 0.45rem 0.75rem;
+    text-align: right;
+    min-width: 56px;
+    transition: background-color 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
+    border-radius: 4px;
+}
+
+.imat-sep {
+    border-left: 2.5px solid var(--teal);
+    padding-left: 0.85rem;
+}
+
+/* Highlight classes */
+.imat-yellow {
+    background-color: var(--amber-dim) !important;
+    color: var(--amber) !important;
+}
+
+.imat-green {
+    background-color: var(--teal-dim) !important;
+    color: var(--teal) !important;
+}
+
+.imat-pivot {
+    background-color: var(--teal-dim) !important;
+    color: var(--teal) !important;
+    font-weight: 700;
+}
+
+.imat-blue {
+    background-color: var(--indigo-dim) !important;
+    color: var(--indigo) !important;
+}
+
+/* Fade animation for value changes */
+.imat-changing {
+    opacity: 0 !important;
+    transform: scale(0.85);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Row slide animation for swaps */
+@keyframes imat-slide-up {
+    0%   { transform: translateY(100%); opacity: 0.4; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes imat-slide-down {
+    0%   { transform: translateY(-100%); opacity: 0.4; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.imat-swap-up td {
+    animation: imat-slide-up 0.4s ease forwards;
+}
+
+.imat-swap-down td {
+    animation: imat-slide-down 0.4s ease forwards;
+}
+
+/* Pulse animation for solution */
+@keyframes imat-pulse {
+    0%, 100% { background-color: var(--teal-dim); }
+    50% { background-color: rgba(52,211,153,0.35); }
+}
+
+.imat-solution-pulse {
+    animation: imat-pulse 1s ease 2;
+}
+
+/* ══════════════════════════════════════════════════════
+   Output section (step cards)
+   ══════════════════════════════════════════════════════ */
 .output-section {
     display: none;
 }
@@ -153,17 +361,18 @@
 .output-section h2 {
     font-size: 1.2rem;
     margin-bottom: 1rem;
+    color: var(--text-heading);
 }
 
 /* ── Steps ── */
 .step {
-    background: var(--card);
-    border: 1px solid #d9e0e5;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 1.25rem;
     margin-bottom: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    transition: opacity 0.4s, transform 0.4s;
+    backdrop-filter: blur(16px);
+    transition: opacity 0.4s, transform 0.4s, background 0.3s, border-color 0.3s;
 }
 
 .step--hidden {
@@ -182,8 +391,9 @@
 }
 
 .step__blas {
-    background: #1a1b26;
-    color: #7aa2f7;
+    background: var(--indigo-dim);
+    border: 1px solid rgba(129,140,248,0.15);
+    color: var(--indigo);
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     font-size: 0.82rem;
     padding: 0.5rem 0.75rem;
@@ -194,7 +404,7 @@
 
 .step__detail {
     font-size: 0.9rem;
-    color: #4b5563;
+    color: var(--text-muted);
     margin-bottom: 0.5rem;
 }
 
@@ -204,6 +414,7 @@
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
     font-size: 0.85rem;
     margin: 0.25rem 0;
+    color: var(--text);
 }
 
 .aug-matrix td {
@@ -218,19 +429,22 @@
 }
 
 .cell-pivot {
-    background: #ccfbf1;
+    background: var(--teal-dim);
     font-weight: 700;
     border-radius: 4px;
+    color: var(--teal);
 }
 
 .cell-swap {
-    background: #e0e7ff;
+    background: var(--indigo-dim);
     border-radius: 4px;
+    color: var(--indigo);
 }
 
 .cell-elim {
-    background: #fef3c7;
+    background: var(--amber-dim);
     border-radius: 4px;
+    color: var(--amber);
 }
 
 /* ── Solution ── */
@@ -249,6 +463,7 @@
 .sol-item {
     font-size: 1.05rem;
     font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    color: var(--text);
 }
 
 .sol-item strong {
@@ -264,13 +479,56 @@
 }
 
 .verify--ok {
-    background: #d1fae5;
-    color: #065f46;
+    background: var(--teal-dim);
+    border: 1px solid rgba(15,118,110,0.2);
+    color: var(--teal);
 }
 
 .verify--fail {
-    background: #fee2e2;
-    color: #991b1b;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    color: #f87171;
+}
+
+/* ── Iterative method display (Jacobi / Seidel) ── */
+.imat-iter-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.85rem;
+    transition: background 0.3s;
+    margin-bottom: 2px;
+    color: var(--text);
+}
+
+.imat-iter-row:nth-child(odd) {
+    background: var(--ghost-bg);
+}
+
+.imat-iter-row:last-child {
+    background: var(--teal-dim);
+    font-weight: 600;
+    color: var(--teal);
+}
+
+.imat-iter-label {
+    min-width: 40px;
+    color: var(--teal);
+    font-weight: 600;
+}
+
+.imat-iter-vec {
+    flex: 1;
+    color: var(--text);
+}
+
+.imat-iter-norm {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 /* ── Responsive ── */
@@ -281,4 +539,10 @@
     .eq-sign { font-size: 1rem; }
     .step { padding: 1rem; }
     .aug-matrix td { padding: 0.2rem 0.35rem; font-size: 0.78rem; }
+    .imat-table { font-size: 0.82rem; }
+    .imat-cell { padding: 0.35rem 0.5rem; min-width: 44px; }
+    .imat-toolbar { flex-direction: column; align-items: flex-start; }
+    .imat-op-label { font-size: 0.8rem; }
+    .imat-iter-row { flex-wrap: wrap; gap: 0.3rem; font-size: 0.78rem; }
+    .imat-iter-label { min-width: 30px; }
 }

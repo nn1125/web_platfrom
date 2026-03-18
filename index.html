@@ -4,20 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IAP</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function(){var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);})();
+    </script>
     <link rel="stylesheet" href="./styles/app.css">
     <link rel="stylesheet" href="./styles/gauss.css">
 </head>
 <body>
 
+<button class="theme-toggle" id="theme-toggle" aria-label="Переключить тему">
+    <svg class="icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg class="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+</button>
+
 <div class="view view--active" id="view-home">
-    <main class="hero-card">
-        <header>
-            <h1>Interactive Algo Platform</h1>
-        </header>
-        <p>IAP — веб-платформа нового поколения, предназначенная для глубокого изучения
-           и практического анализа алгоритмов в пространстве высокой размерности.</p>
-        <button class="btn btn--accent" id="btn-try">Попробовать</button>
-    </main>
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero">
+        <div class="hero__badge">open-source platform</div>
+        <h1 class="hero__title">
+            <span class="hero__title-line">Interactive</span>
+            <span class="hero__title-line hero__title-line--accent">Algo Platform</span>
+        </h1>
+        <p class="hero__sub">
+            Веб-платформа нового поколения для глубокого изучения и визуализации
+            численных алгоритмов линейной алгебры в реальном времени.
+        </p>
+        <div class="hero__actions">
+            <button class="btn btn--glow" id="btn-try">
+                <span>Начать работу</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+            <div class="hero__stats">
+                <div class="hero__stat">
+                    <span class="hero__stat-num" data-target="10">0</span>
+                    <span class="hero__stat-label">алгоритмов СЛАУ</span>
+                </div>
+                <div class="hero__stat-divider"></div>
+                <div class="hero__stat">
+                    <span class="hero__stat-num" data-target="3">0</span>
+                    <span class="hero__stat-label">категории</span>
+                </div>
+                <div class="hero__stat-divider"></div>
+                <div class="hero__stat">
+                    <span class="hero__stat-num" data-target="20">0</span>
+                    <span class="hero__stat-label">алгоритмов всего</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero__cards">
+            <div class="hero__card hero__card--teal">
+                <div class="hero__card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </div>
+                <h3>Многомерные СЛАУ</h3>
+                <p>Гаусс, LU, QR, Холецкий, итерационные методы и GMRES</p>
+                <span class="hero__card-count">10 методов</span>
+            </div>
+            <div class="hero__card hero__card--indigo">
+                <div class="hero__card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4m-3.3-6.7-2.8 2.8m-5.8 5.8-2.8 2.8m0-11.4 2.8 2.8m5.8 5.8 2.8 2.8"/></svg>
+                </div>
+                <h3>Нелинейные системы</h3>
+                <p>Ньютон, Бройден, итерации, гомотопия</p>
+                <span class="hero__card-count">5 методов</span>
+            </div>
+            <div class="hero__card hero__card--amber">
+                <div class="hero__card-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 20 7 8l4 6 3-10 4 8 3-4"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
+                </div>
+                <h3>Аппроксимация</h3>
+                <p>Регрессия, RBF, МНК, сплайны</p>
+                <span class="hero__card-count">5 методов</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="view" id="view-algorithms">
@@ -79,9 +143,571 @@
             <button class="btn btn--accent" id="btn-solve" disabled>Решить</button>
         </section>
 
+        <section class="interactive-section" id="interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="imat-op-label"></div>
+            <div class="imat-container" id="imat-container"></div>
+        </section>
+
         <section class="output-section" id="output-section">
-            <h2>Процесс вычисления</h2>
+            <h2>Пошаговое решение</h2>
             <div class="steps" id="steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-lu">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-lu">&larr; Алгоритмы</button>
+            <h1>LU-разложение</h1>
+            <p class="subtitle">Факторизация PA = LU с частичным выбором ведущего элемента</p>
+        </header>
+
+        <div class="wasm-status" id="lu-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section" id="lu-input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="lu-inp-size" value="3">
+                <button class="btn btn--ghost" id="lu-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="lu-btn-example">Пример</button>
+            </div>
+
+            <div class="matrix-input-wrap">
+                <div>
+                    <h3>Матрица A</h3>
+                    <table class="matrix-table" id="lu-matrix-a"></table>
+                </div>
+                <div class="eq-sign">&middot; x =</div>
+                <div>
+                    <h3>Вектор b</h3>
+                    <table class="matrix-table" id="lu-vector-b"></table>
+                </div>
+            </div>
+
+            <button class="btn btn--accent" id="lu-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="lu-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="lu-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="lu-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="lu-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="lu-imat-op-label"></div>
+            <div class="imat-container" id="lu-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="lu-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="lu-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-qr">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-qr">&larr; Алгоритмы</button>
+            <h1>QR-разложение</h1>
+            <p class="subtitle">Факторизация A = QR через отражатели Хаусхолдера</p>
+        </header>
+
+        <div class="wasm-status" id="qr-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section" id="qr-input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="qr-inp-size" value="3">
+                <button class="btn btn--ghost" id="qr-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="qr-btn-example">Пример</button>
+            </div>
+
+            <div class="matrix-input-wrap">
+                <div>
+                    <h3>Матрица A</h3>
+                    <table class="matrix-table" id="qr-matrix-a"></table>
+                </div>
+                <div class="eq-sign">&middot; x =</div>
+                <div>
+                    <h3>Вектор b</h3>
+                    <table class="matrix-table" id="qr-vector-b"></table>
+                </div>
+            </div>
+
+            <button class="btn btn--accent" id="qr-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="qr-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="qr-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="qr-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="qr-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="qr-imat-op-label"></div>
+            <div class="imat-container" id="qr-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="qr-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="qr-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-cholesky">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-cholesky">&larr; Алгоритмы</button>
+            <h1>Метод Холецкого</h1>
+            <p class="subtitle">Факторизация A = LLᵀ для симметричных положительно определённых матриц</p>
+        </header>
+
+        <div class="wasm-status" id="ch-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="ch-inp-size" value="3">
+                <button class="btn btn--ghost" id="ch-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="ch-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A (СПО)</h3><table class="matrix-table" id="ch-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="ch-vector-b"></table></div>
+            </div>
+            <button class="btn btn--accent" id="ch-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="ch-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="ch-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="ch-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="ch-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="ch-imat-op-label"></div>
+            <div class="imat-container" id="ch-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="ch-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="ch-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-jacobi">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-jacobi">&larr; Алгоритмы</button>
+            <h1>Метод Якоби</h1>
+            <p class="subtitle">Итерационный метод решения СЛАУ с покомпонентным обновлением</p>
+        </header>
+
+        <div class="wasm-status" id="ja-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="ja-inp-size" value="3">
+                <button class="btn btn--ghost" id="ja-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="ja-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A</h3><table class="matrix-table" id="ja-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="ja-vector-b"></table></div>
+            </div>
+            <div class="size-row">
+                <label>ε =</label>
+                <input type="text" id="ja-eps" value="1e-6" style="width:80px">
+                <label>Макс. итераций =</label>
+                <input type="text" inputmode="numeric" id="ja-max-iter" value="100" style="width:60px">
+            </div>
+            <button class="btn btn--accent" id="ja-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="ja-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="ja-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="ja-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="ja-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="ja-imat-op-label"></div>
+            <div class="imat-container" id="ja-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="ja-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="ja-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-seidel">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-seidel">&larr; Алгоритмы</button>
+            <h1>Метод Зейделя</h1>
+            <p class="subtitle">Итерационный метод с использованием уже обновлённых компонент</p>
+        </header>
+
+        <div class="wasm-status" id="se-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="se-inp-size" value="3">
+                <button class="btn btn--ghost" id="se-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="se-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A</h3><table class="matrix-table" id="se-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="se-vector-b"></table></div>
+            </div>
+            <div class="size-row">
+                <label>ε =</label>
+                <input type="text" id="se-eps" value="1e-6" style="width:80px">
+                <label>Макс. итераций =</label>
+                <input type="text" inputmode="numeric" id="se-max-iter" value="100" style="width:60px">
+            </div>
+            <button class="btn btn--accent" id="se-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="se-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="se-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="se-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="se-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="se-imat-op-label"></div>
+            <div class="imat-container" id="se-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="se-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="se-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-sor">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-sor">&larr; Алгоритмы</button>
+            <h1>Метод сверхрелаксации (SOR)</h1>
+            <p class="subtitle">Обобщение метода Зейделя с параметром релаксации ω</p>
+        </header>
+
+        <div class="wasm-status" id="so-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="so-inp-size" value="3">
+                <button class="btn btn--ghost" id="so-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="so-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A</h3><table class="matrix-table" id="so-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="so-vector-b"></table></div>
+            </div>
+            <div class="size-row">
+                <label>ω =</label>
+                <input type="text" id="so-omega" value="1.25" style="width:60px">
+                <label>ε =</label>
+                <input type="text" id="so-eps" value="1e-6" style="width:80px">
+                <label>Макс. итераций =</label>
+                <input type="text" inputmode="numeric" id="so-max-iter" value="100" style="width:60px">
+            </div>
+            <button class="btn btn--accent" id="so-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="so-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="so-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="so-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="so-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="so-imat-op-label"></div>
+            <div class="imat-container" id="so-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="so-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="so-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-minres">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-minres">&larr; Алгоритмы</button>
+            <h1>Метод минимальных невязок</h1>
+            <p class="subtitle">Итерационный метод с оптимальным параметром τ = (Ar, r) / (Ar, Ar)</p>
+        </header>
+
+        <div class="wasm-status" id="mr-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="mr-inp-size" value="3">
+                <button class="btn btn--ghost" id="mr-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="mr-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A</h3><table class="matrix-table" id="mr-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="mr-vector-b"></table></div>
+            </div>
+            <div class="size-row">
+                <label>ε =</label>
+                <input type="text" id="mr-eps" value="1e-6" style="width:80px">
+                <label>Макс. итераций =</label>
+                <input type="text" inputmode="numeric" id="mr-max-iter" value="200" style="width:60px">
+            </div>
+            <button class="btn btn--accent" id="mr-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="mr-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="mr-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="mr-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="mr-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="mr-imat-op-label"></div>
+            <div class="imat-container" id="mr-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="mr-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="mr-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-bicg">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-bicg">&larr; Алгоритмы</button>
+            <h1>Метод би-сопряжённых градиентов</h1>
+            <p class="subtitle">BiCG — метод крыловского типа для несимметричных СЛАУ</p>
+        </header>
+
+        <div class="wasm-status" id="bi-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="bi-inp-size" value="3">
+                <button class="btn btn--ghost" id="bi-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="bi-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A</h3><table class="matrix-table" id="bi-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="bi-vector-b"></table></div>
+            </div>
+            <div class="size-row">
+                <label>ε =</label>
+                <input type="text" id="bi-eps" value="1e-6" style="width:80px">
+                <label>Макс. итераций =</label>
+                <input type="text" inputmode="numeric" id="bi-max-iter" value="200" style="width:60px">
+            </div>
+            <button class="btn btn--accent" id="bi-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="bi-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="bi-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="bi-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="bi-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="bi-imat-op-label"></div>
+            <div class="imat-container" id="bi-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="bi-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="bi-steps"></div>
+        </section>
+    </div>
+</div>
+
+<div class="view" id="view-gmres">
+    <div class="gauss-page">
+        <header class="page__header">
+            <button class="back-btn" id="btn-back-gmres">&larr; Алгоритмы</button>
+            <h1>GMRES</h1>
+            <p class="subtitle">Обобщённый метод минимальных невязок с рестартами</p>
+        </header>
+
+        <div class="wasm-status" id="gm-wasm-status">
+            <span class="spinner"></span> Загрузка OpenBLAS WebAssembly...
+        </div>
+
+        <section class="input-section">
+            <div class="size-row">
+                <label>Размерность n =</label>
+                <input type="text" inputmode="numeric" id="gm-inp-size" value="3">
+                <button class="btn btn--ghost" id="gm-btn-resize">Обновить</button>
+                <button class="btn btn--ghost" id="gm-btn-example">Пример</button>
+            </div>
+            <div class="matrix-input-wrap">
+                <div><h3>Матрица A</h3><table class="matrix-table" id="gm-matrix-a"></table></div>
+                <div class="eq-sign">&middot; x =</div>
+                <div><h3>Вектор b</h3><table class="matrix-table" id="gm-vector-b"></table></div>
+            </div>
+            <div class="size-row">
+                <label>Рестарт m =</label>
+                <input type="text" inputmode="numeric" id="gm-restart" value="10" style="width:50px">
+                <label>ε =</label>
+                <input type="text" id="gm-eps" value="1e-6" style="width:80px">
+                <label>Макс. рестартов =</label>
+                <input type="text" inputmode="numeric" id="gm-max-iter" value="100" style="width:60px">
+            </div>
+            <button class="btn btn--accent" id="gm-btn-solve" disabled>Решить</button>
+        </section>
+
+        <section class="interactive-section" id="gm-interactive-section" style="display:none">
+            <h2>Визуализация</h2>
+            <div class="imat-toolbar">
+                <div class="imat-status" id="gm-imat-status"></div>
+                <div class="imat-controls">
+                    <label class="imat-speed-label">Скорость:
+                        <select id="gm-imat-speed">
+                            <option value="1400">0.5x</option>
+                            <option value="800" selected>1x</option>
+                            <option value="400">2x</option>
+                            <option value="200">4x</option>
+                        </select>
+                    </label>
+                    <button class="btn btn--ghost imat-skip-btn" id="gm-imat-skip">Пропустить</button>
+                </div>
+            </div>
+            <div class="imat-op-label" id="gm-imat-op-label"></div>
+            <div class="imat-container" id="gm-imat-container"></div>
+        </section>
+
+        <section class="output-section" id="gm-output-section">
+            <h2>Пошаговое решение</h2>
+            <div class="steps" id="gm-steps"></div>
         </section>
     </div>
 </div>
@@ -117,5 +743,14 @@ if (!crossOriginIsolated && "serviceWorker" in navigator) {
 
 <script src="./js/app.js"></script>
 <script src="./js/gauss.js"></script>
+<script src="./js/lu.js"></script>
+<script src="./js/qr.js"></script>
+<script src="./js/cholesky.js"></script>
+<script src="./js/jacobi.js"></script>
+<script src="./js/seidel.js"></script>
+<script src="./js/sor.js"></script>
+<script src="./js/minres.js"></script>
+<script src="./js/bicg.js"></script>
+<script src="./js/gmres.js"></script>
 </body>
 </html>
