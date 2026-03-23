@@ -33,7 +33,7 @@ function chParseMat(t) { const r=[]; for(const l of t.split('\n')){const m=l.mat
 function chEsc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function chSleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 function chAnimSleep(ms) { return chAnimSkipped ? Promise.resolve() : new Promise(r=>setTimeout(r,ms)); }
-function chSpeed() { return parseInt($chImatSpeed.value)||800; }
+function chSpeed() { return parseInt($chImatSpeed.value)||1600; }
 
 /* ── Grid ── */
 function chBuildGrid(n) {

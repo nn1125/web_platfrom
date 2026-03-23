@@ -32,7 +32,7 @@ function gmParseScalar(t){const m=t.match(/=\s*([-\d.eE+]+)/);return m?parseFloa
 function gmEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function gmSleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function gmAnimSleep(ms){return gmAnimSkipped?Promise.resolve():new Promise(r=>setTimeout(r,ms));}
-function gmSpeed(){return parseInt($gmImatSpeed.value)||800;}
+function gmSpeed(){return parseInt($gmImatSpeed.value)||1600;}
 
 /* JS lin-alg */
 function gmMatVec(A,x,n){const y=new Array(n).fill(0);for(let i=0;i<n;i++)for(let j=0;j<n;j++)y[i]+=A[i][j]*x[j];return y;}

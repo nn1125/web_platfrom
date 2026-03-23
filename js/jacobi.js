@@ -30,7 +30,7 @@ function jaParseVec(t){const m=t.match(/\[([^\]]+)\]/);return m?m[1].trim().spli
 function jaEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function jaSleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function jaAnimSleep(ms){return jaAnimSkipped?Promise.resolve():new Promise(r=>setTimeout(r,ms));}
-function jaSpeed(){return parseInt($jaImatSpeed.value)||800;}
+function jaSpeed(){return parseInt($jaImatSpeed.value)||1600;}
 
 /* ── Grid ── */
 function jaBuildGrid(n){

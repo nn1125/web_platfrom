@@ -31,7 +31,7 @@ function mrParseScalar(t){const m=t.match(/=\s*([-\d.eE+]+)/);return m?parseFloa
 function mrEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function mrSleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function mrAnimSleep(ms){return mrAnimSkipped?Promise.resolve():new Promise(r=>setTimeout(r,ms));}
-function mrSpeed(){return parseInt($mrImatSpeed.value)||800;}
+function mrSpeed(){return parseInt($mrImatSpeed.value)||1600;}
 
 /* ── Grid ── */
 function mrBuildGrid(n){

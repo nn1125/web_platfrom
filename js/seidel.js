@@ -30,7 +30,7 @@ function seParseVec(t){const m=t.match(/\[([^\]]+)\]/);return m?m[1].trim().spli
 function seEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function seSleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function seAnimSleep(ms){return seAnimSkipped?Promise.resolve():new Promise(r=>setTimeout(r,ms));}
-function seSpeed(){return parseInt($seImatSpeed.value)||800;}
+function seSpeed(){return parseInt($seImatSpeed.value)||1600;}
 
 /* ── Grid ── */
 function seBuildGrid(n){

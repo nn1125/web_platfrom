@@ -58,7 +58,7 @@ function qrAnimSleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
 
-function qrGetAnimSpeed() { return parseInt($qrImatSpeed.value) || 800; }
+function qrGetAnimSpeed() { return parseInt($qrImatSpeed.value) || 1600; }
 
 /* ── Grid ── */
 function qrBuildGrid(n) {

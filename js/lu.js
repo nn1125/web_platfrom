@@ -60,7 +60,7 @@ function luAnimSleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
 
-function luGetAnimSpeed() { return parseInt($luImatSpeed.value) || 800; }
+function luGetAnimSpeed() { return parseInt($luImatSpeed.value) || 1600; }
 
 /* ── Grid ── */
 function luBuildGrid(n) {

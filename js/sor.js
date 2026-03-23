@@ -31,7 +31,7 @@ function soParseVec(t){const m=t.match(/\[([^\]]+)\]/);return m?m[1].trim().spli
 function soEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function soSleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function soAnimSleep(ms){return soAnimSkipped?Promise.resolve():new Promise(r=>setTimeout(r,ms));}
-function soSpeed(){return parseInt($soImatSpeed.value)||800;}
+function soSpeed(){return parseInt($soImatSpeed.value)||1600;}
 
 /* ── Grid ── */
 function soBuildGrid(n){

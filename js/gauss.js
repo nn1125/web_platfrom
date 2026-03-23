@@ -29,8 +29,13 @@ let wasmLoading = false;
 let animSkipped = false;
 
 /* Emscripten Module config (must be global) */
+/* Mutable print handler — Emscripten captures Module.print into a local
+   `out` variable once at init, so later assignments have no effect.
+   Wrapping through _blasPrintHandler lets runBlas redirect output. */
+var _blasPrintHandler = function() {};
+
 window.Module = {
-    print: function() {},
+    print: function() { _blasPrintHandler.apply(null, arguments); },
     printErr: function() {},
     onRuntimeInitialized: function() {
         wasmReady = true;
@@ -65,8 +70,8 @@ function loadWasm() {
 /* ── WASM command helper ── */
 function runBlas(cmd) {
     let output = '';
-    const prev = Module.print;
-    Module.print = (t) => { output += t + '\n'; };
+    const prev = _blasPrintHandler;
+    _blasPrintHandler = (t) => { output += t + '\n'; };
 
     const len = Module.lengthBytesUTF8(cmd) + 1;
     const ptr = Module._malloc(len);
@@ -74,7 +79,7 @@ function runBlas(cmd) {
     Module._run_command(ptr);
     Module._free(ptr);
 
-    Module.print = prev;
+    _blasPrintHandler = prev;
     return output.trim();
 }
 
@@ -203,7 +208,7 @@ function sleep(ms) {
    ══════════════════════════════════════════════════════ */
 
 function getAnimSpeed() {
-    return parseInt($imatSpeed.value) || 800;
+    return parseInt($imatSpeed.value) || 1600;
 }
 
 function animSleep(ms) {
@@ -554,20 +559,9 @@ async function solve() {
             const rowKAug = [...A2[k], b2[k]];
             const rowPAug = [...A2[pivotRow], b2[pivotRow]];
             const swapCmd = `dswap ${n + 1} ${rowKAug.map(fmtNum).join(' ')} ${rowPAug.map(fmtNum).join(' ')}`;
-            const swapOut = runBlas(swapCmd);
 
-            const lines = swapOut.split('\n');
-            for (const line of lines) {
-                const vals = parseVec(line);
-                if (!vals) continue;
-                if (line.includes('x (after swap)')) {
-                    for (let j = 0; j < n; j++) A2[k][j] = vals[j];
-                    b2[k] = vals[n];
-                } else if (line.includes('y (after swap)')) {
-                    for (let j = 0; j < n; j++) A2[pivotRow][j] = vals[j];
-                    b2[pivotRow] = vals[n];
-                }
-            }
+            const tmpRow = A2[k]; A2[k] = A2[pivotRow]; A2[pivotRow] = tmpRow;
+            const tmpB = b2[k]; b2[k] = b2[pivotRow]; b2[pivotRow] = tmpB;
 
             s = addStep(
                 `Перестановка строк ${k + 1} и ${pivotRow + 1}`,

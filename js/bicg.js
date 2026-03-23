@@ -31,7 +31,7 @@ function biParseScalar(t){const m=t.match(/=\s*([-\d.eE+]+)/);return m?parseFloa
 function biEsc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function biSleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function biAnimSleep(ms){return biAnimSkipped?Promise.resolve():new Promise(r=>setTimeout(r,ms));}
-function biSpeed(){return parseInt($biImatSpeed.value)||800;}
+function biSpeed(){return parseInt($biImatSpeed.value)||1600;}
 
 /* JS lin-alg */
 function biMatVec(A,x,n){const y=new Array(n).fill(0);for(let i=0;i<n;i++)for(let j=0;j<n;j++)y[i]+=A[i][j]*x[j];return y;}
