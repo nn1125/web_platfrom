@@ -68,9 +68,9 @@ echo "Using library: $LIBOPENBLAS"
 # ── 2. Compile interactive shell → HTML + JS + WASM ─────────────────────
 echo "=== Compiling shell_cblas.c → shell_cblas.html ==="
 
-# Keep -O1 for shell link: current toolchain hits a wasm-opt validation error at -O2
-# when additional LAPACK routines are referenced.
-emcc -O1 \
+# Keep -O0 for shell link: wasm-opt at -O1+ can produce invalid wasm
+# with setjmp/longjmp on newer Emscripten toolchains.
+emcc -O0 \
   -I"$OPENBLAS_DIR" \
   "$SCRIPT_DIR/shell_cblas.c" \
   "$LIBOPENBLAS" \

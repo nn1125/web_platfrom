@@ -5,7 +5,7 @@ import {
 } from './solverUtils';
 
 export default {
-  title: 'LU-разложение',
+  title: 'LU',
   subtitle: 'Факторизация PA = LU с частичным выбором ведущего элемента',
   prefix: 'lu',
   defaultSize: 3,
@@ -161,29 +161,28 @@ export default {
       const Umat = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i <= j ? luPacked[i][j] : 0)));
 
       let luHtml = '<div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start">';
-      luHtml += '<div><h3 style="color:var(--amber);font-size:0.95rem;margin-bottom:0.5rem">L</h3>' + renderMatrix(Lmat, n, { lCells: true }) + '</div>';
-      luHtml += '<div><h3 style="color:var(--teal);font-size:0.95rem;margin-bottom:0.5rem">U</h3>' + renderMatrix(Umat, n, { uCells: true }) + '</div>';
-      if (ipivArr.length > 0) luHtml += `<div><h3 style="font-size:0.95rem;margin-bottom:0.5rem">ipiv</h3><div style="font-family:monospace;font-size:0.9rem">[${ipivArr.join(', ')}]</div></div>`;
+      luHtml += '<div><h3 style="color:var(--amber);font-size:0.95rem;margin-bottom:0.5rem">L</h3>' + renderMatrix(Lmat, n, { lower: true }) + '</div>';
+      luHtml += '<div><h3 style="color:var(--teal);font-size:0.95rem;margin-bottom:0.5rem">U</h3>' + renderMatrix(Umat, n, { upper: true }) + '</div>';
+      if (ipivArr.length > 0) luHtml += `<div><h3 style="font-size:0.95rem;margin-bottom:0.5rem">Вектор перестановок строк</h3><div style="font-family:monospace;font-size:0.9rem">[${ipivArr.join(', ')}]</div></div>`;
       luHtml += '</div>';
       s = stepLog.addStep('Матрицы L и U', 'PA = LU', luHtml);
       await stepLog.showStep(s);
 
-      const flatLU = [];
-      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) flatLU.push(fmtNum(luPacked[i][j]));
-      const getrsCmd = `dgetrs N ${n} 1 ${flatLU.join(' ')} ${ipivArr.join(' ')} ${origB.map(fmtNum).join(' ')}`;
-      const getrsOut = runBlas(getrsCmd);
-      s = stepLog.addStep('Решение (dgetrs)', 'LAPACKE_dgetrs: прямая и обратная подстановка', null, getrsCmd);
+      /* Solve via LAPACKE_dgesv (dgetrf + dgetrs internally) */
+      const gesvCmd = `dgesv ${n} 1 ${flatA.join(' ')} ${origB.map(fmtNum).join(' ')}`;
+      const gesvOut = runBlas(gesvCmd);
+      s = stepLog.addStep('Решение (dgesv)', 'LAPACKE_dgesv: LU-факторизация + подстановка', null, gesvCmd);
       await stepLog.showStep(s);
 
-      const solution = parseVec(getrsOut);
+      const solMat = parseMat(gesvOut);
+      const solution = solMat.length > 0 ? solMat.flat() : null;
       if (solution) {
         let solHtml = solutionHtml(solution, n);
-        solHtml += verifyWithDgesv(runBlas, origA, origB, solution, n);
-        s = stepLog.addStep('Результат', null, solHtml, getrsCmd);
+        s = stepLog.addStep('Результат', null, solHtml, gesvCmd);
         await stepLog.showStep(s);
         viz.setStatus('Решение найдено!');
       } else {
-        s = stepLog.addStep('Ошибка', 'Не удалось получить решение из dgetrs.', null, getrsCmd);
+        s = stepLog.addStep('Ошибка', 'Не удалось получить решение из dgesv.', null, gesvCmd);
         await stepLog.showStep(s);
       }
     } else {

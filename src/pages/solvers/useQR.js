@@ -5,8 +5,8 @@ import {
 } from './solverUtils';
 
 export default {
-  title: 'QR-разложение',
-  subtitle: 'Факторизация A = QR через отражатели Хаусхолдера',
+  title: 'QR',
+  subtitle: 'Факторизация A = QR через векторы отражения',
   prefix: 'qr',
   defaultSize: 3,
   exampleSize: 3,

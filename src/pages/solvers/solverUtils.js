@@ -217,7 +217,8 @@ export function verifyWithDgesv(runBlas, origA, origB, solution, n) {
   const flatA = flattenMatrix(origA, n);
   const verifyCmd = `dgesv ${n} 1 ${flatA.join(' ')} ${origB.map(fmtNum).join(' ')}`;
   const verifyOut = runBlas(verifyCmd);
-  const verifySol = parseVec(verifyOut);
+  const verifySolMat = parseMat(verifyOut);
+  const verifySol = verifySolMat.length > 0 ? verifySolMat.flat() : null;
   if (!verifySol) return '';
   let match = true;
   for (let i = 0; i < n; i++)
