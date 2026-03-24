@@ -5,12 +5,14 @@ import MatrixInput from '../../components/MatrixInput';
 import Visualization from '../../components/Visualization';
 import StepLog from '../../components/StepLog';
 import WasmStatus from '../../components/WasmStatus';
+import AlertModal from '../../components/AlertModal';
 
 export default function SolverPage({ solverKey, configLoader }) {
   const navigate = useNavigate();
   const { wasmReady, runBlas } = useWasm();
   const [config, setConfig] = useState(null);
   const [solving, setSolving] = useState(false);
+  const [alertMsg, setAlertMsg] = useState(null);
   const matrixRef = useRef(null);
   const vizRef = useRef(null);
   const stepLogRef = useRef(null);
@@ -39,8 +41,8 @@ export default function SolverPage({ solverKey, configLoader }) {
   const handleSolve = useCallback(async () => {
     if (!config || solving) return;
     const data = matrixRef.current?.readInput();
-    if (!data) { alert('Заполните все ячейки числами'); return; }
-    if (!wasmReady) { alert('OpenBLAS ещё загружается, подождите'); return; }
+    if (!data) { setAlertMsg('Заполните все ячейки числами'); return; }
+    if (!wasmReady) { setAlertMsg('OpenBLAS ещё загружается, подождите'); return; }
 
     setSolving(true);
     skipRef.current = false;
@@ -95,6 +97,8 @@ export default function SolverPage({ solverKey, configLoader }) {
 
         <Visualization ref={vizRef} onSkip={handleSkip} />
         <StepLog ref={stepLogRef} stepDelay={config.stepDelay} />
+
+        <AlertModal message={alertMsg} onClose={() => setAlertMsg(null)} />
       </div>
     </div>
   );

@@ -76,8 +76,14 @@
     transition: opacity 0.2s;
 }
 
-.wasm-close-btn:hover {
+.wasm-close-btn:hover,
+.wasm-close-btn:focus-visible {
     opacity: 1;
+}
+
+.wasm-close-btn:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
 }
 
 /* Progress bar inside wasm-status */
@@ -426,8 +432,14 @@
     transition: background 0.2s, color 0.2s;
 }
 
-.backsub-toggle-btn:hover {
+.backsub-toggle-btn:hover,
+.backsub-toggle-btn:focus-visible {
     background: var(--teal-dim) !important;
+}
+
+.backsub-toggle-btn:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
 }
 
 .backsub-section {

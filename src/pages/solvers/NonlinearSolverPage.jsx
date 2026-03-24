@@ -4,12 +4,14 @@ import { useWasm } from '../../wasm/WasmContext';
 import Visualization from '../../components/Visualization';
 import StepLog from '../../components/StepLog';
 import WasmStatus from '../../components/WasmStatus';
+import AlertModal from '../../components/AlertModal';
 
 export default function NonlinearSolverPage({ solverKey, configLoader }) {
   const navigate = useNavigate();
   const { wasmReady, runBlas } = useWasm();
   const [config, setConfig] = useState(null);
   const [solving, setSolving] = useState(false);
+  const [alertMsg, setAlertMsg] = useState(null);
   const [size, setSize] = useState(2);
   const [equations, setEquations] = useState(['', '']);
   const [initGuess, setInitGuess] = useState(['', '']);
@@ -64,9 +66,9 @@ export default function NonlinearSolverPage({ solverKey, configLoader }) {
     const n = size;
     const eqs = [...equations];
     const x0 = initGuess.map(v => parseFloat(v));
-    if (x0.some(isNaN)) { alert('Заполните все начальные приближения числами'); return; }
-    if (eqs.some(e => !e.trim())) { alert('Заполните все уравнения'); return; }
-    if (!wasmReady) { alert('OpenBLAS ещё загружается, подождите'); return; }
+    if (x0.some(isNaN)) { setAlertMsg('Заполните все начальные приближения числами'); return; }
+    if (eqs.some(e => !e.trim())) { setAlertMsg('Заполните все уравнения'); return; }
+    if (!wasmReady) { setAlertMsg('OpenBLAS ещё загружается, подождите'); return; }
 
     const extra = {};
     if (config.extraParams) {
@@ -224,6 +226,8 @@ export default function NonlinearSolverPage({ solverKey, configLoader }) {
 
         <Visualization ref={vizRef} onSkip={handleSkip} />
         <StepLog ref={stepLogRef} stepDelay={config.stepDelay} />
+
+        <AlertModal message={alertMsg} onClose={() => setAlertMsg(null)} />
       </div>
     </div>
   );

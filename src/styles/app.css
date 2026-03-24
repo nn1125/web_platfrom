@@ -159,11 +159,17 @@ body {
   transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
   background: var(--bg-card-hover);
   border-color: var(--border-hover);
   color: var(--text);
   transform: scale(1.08);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
 }
 
 .theme-toggle .icon-sun,
@@ -282,9 +288,15 @@ body {
   box-shadow: 0 0 30px var(--glow-1), 0 0 60px var(--glow-2);
 }
 
-.btn--glow:hover {
+.btn--glow:hover,
+.btn--glow:focus-visible {
   transform: translateY(-2px);
   box-shadow: 0 0 40px var(--glow-1-hover), 0 0 80px var(--glow-2-hover);
+}
+
+.btn--glow:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--teal), 0 0 40px var(--glow-1-hover), 0 0 80px var(--glow-2-hover);
 }
 
 .btn--glow:active {
@@ -363,10 +375,16 @@ body {
   transition: opacity 0.3s;
 }
 
-.hero__card:hover {
+.hero__card:hover,
+.hero__card:focus-visible {
   transform: translateY(-4px);
   border-color: var(--hero-card-border-hover);
   background: var(--hero-card-bg-hover);
+}
+
+.hero__card:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
 }
 
 .hero__card:hover::before {
@@ -468,6 +486,7 @@ body {
 }
 
 .back-btn:hover { color: var(--accent-hover); text-decoration: underline; }
+.back-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; border-radius: 4px; }
 
 /* ── Categories ── */
 .category {
@@ -512,13 +531,21 @@ body {
 .algo-item:active { transform: scale(0.99); }
 
 .algo-item--teal   { background: var(--teal-dim);   color: var(--teal); }
-.algo-item--teal:hover   { background: var(--teal);   color: var(--accent-on); }
+.algo-item--teal:hover,
+.algo-item--teal:focus-visible   { background: var(--teal);   color: var(--accent-on); }
 
 .algo-item--indigo { background: var(--indigo-dim); color: var(--indigo); }
-.algo-item--indigo:hover { background: var(--indigo); color: var(--accent-on); }
+.algo-item--indigo:hover,
+.algo-item--indigo:focus-visible { background: var(--indigo); color: var(--accent-on); }
 
 .algo-item--amber  { background: var(--amber-dim);  color: var(--amber); }
-.algo-item--amber:hover  { background: var(--amber);  color: var(--accent-on); }
+.algo-item--amber:hover,
+.algo-item--amber:focus-visible  { background: var(--amber);  color: var(--accent-on); }
+
+.algo-item:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 
 /* ── Buttons ── */
 .btn {
@@ -537,14 +564,21 @@ body {
   background: var(--accent);
   color: #fff;
 }
-.btn--accent:hover { background: var(--accent-hover); color: var(--accent-on); }
+.btn--accent:hover,
+.btn--accent:focus-visible { background: var(--accent-hover); color: var(--accent-on); }
 
 .btn--ghost {
   background: var(--ghost-bg);
   color: var(--text);
   border: 1px solid var(--border);
 }
-.btn--ghost:hover { background: var(--ghost-bg-hover); }
+.btn--ghost:hover,
+.btn--ghost:focus-visible { background: var(--ghost-bg-hover); }
+
+.btn:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 
 /* ── Modal ── */
 .modal-overlay {

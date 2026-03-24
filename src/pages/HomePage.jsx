@@ -188,7 +188,7 @@ export default function HomePage() {
         </div>
 
         <div className="hero__cards">
-          <div className="hero__card hero__card--teal" onClick={() => goAlgorithms('slau')}>
+          <div className="hero__card hero__card--teal" tabIndex={0} role="button" onClick={() => goAlgorithms('slau')} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), goAlgorithms('slau'))}>
             <div className="hero__card-icon">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             </div>
@@ -196,7 +196,7 @@ export default function HomePage() {
             <p>Гаусс, LU, QR, Холецкий, итерационные методы и GMRES</p>
             <span className="hero__card-count">10 методов</span>
           </div>
-          <div className="hero__card hero__card--indigo" onClick={() => goAlgorithms('nonlinear')}>
+          <div className="hero__card hero__card--indigo" tabIndex={0} role="button" onClick={() => goAlgorithms('nonlinear')} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), goAlgorithms('nonlinear'))}>
             <div className="hero__card-icon">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4m-3.3-6.7-2.8 2.8m-5.8 5.8-2.8 2.8m0-11.4 2.8 2.8m5.8 5.8 2.8 2.8"/></svg>
             </div>
@@ -204,7 +204,7 @@ export default function HomePage() {
             <p>Ньютон, Бройден, итерации, гомотопия</p>
             <span className="hero__card-count">5 методов</span>
           </div>
-          <div className="hero__card hero__card--amber" onClick={() => goAlgorithms('approx')}>
+          <div className="hero__card hero__card--amber" tabIndex={0} role="button" onClick={() => goAlgorithms('approx')} onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), goAlgorithms('approx'))}>
             <div className="hero__card-icon">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 20 7 8l4 6 3-10 4 8 3-4"/><line x1="3" y1="20" x2="21" y2="20"/></svg>
             </div>

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useWasm } from '../../wasm/WasmContext';
 import StepLog from '../../components/StepLog';
 import WasmStatus from '../../components/WasmStatus';
+import AlertModal from '../../components/AlertModal';
 
 export default function RegressionPage({ solverKey, configLoader }) {
   const navigate = useNavigate();
   const { wasmReady, runBlas } = useWasm();
   const [config, setConfig] = useState(null);
   const [solving, setSolving] = useState(false);
+  const [alertMsg, setAlertMsg] = useState(null);
   const [numFeatures, setNumFeatures] = useState(1);
   const [rows, setRows] = useState(() => Array.from({ length: 5 }, () => ({ xs: [''], y: '' })));
   const [charts, setCharts] = useState(null);
@@ -67,7 +69,7 @@ export default function RegressionPage({ solverKey, configLoader }) {
 
   const handleSolve = useCallback(async () => {
     if (!config || solving || !config.solve) return;
-    if (!wasmReady) { alert('OpenBLAS ещё загружается'); return; }
+    if (!wasmReady) { setAlertMsg('OpenBLAS ещё загружается'); return; }
 
     const m = numFeatures;
     const data = [];
@@ -79,7 +81,7 @@ export default function RegressionPage({ solverKey, configLoader }) {
     }
     const minPts = config.minPoints ? config.minPoints(m) : m + 1;
     if (data.length < minPts) {
-      alert(`Нужно минимум ${minPts} точек данных (сейчас ${data.length} корректных)`);
+      setAlertMsg(`Нужно минимум ${minPts} точек данных (сейчас ${data.length} корректных)`);
       return;
     }
 
@@ -525,6 +527,8 @@ export default function RegressionPage({ solverKey, configLoader }) {
         )}
 
         <StepLog ref={stepLogRef} stepDelay={400} />
+
+        <AlertModal message={alertMsg} onClose={() => setAlertMsg(null)} />
       </div>
     </div>
   );

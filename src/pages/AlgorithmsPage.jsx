@@ -47,7 +47,10 @@ export default function AlgorithmsPage() {
                 <li
                   key={algo.name}
                   className={`algo-item algo-item--${groupColor[group]}`}
+                  tabIndex={0}
+                  role="button"
                   onClick={() => openModal(algo)}
+                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openModal(algo))}
                 >
                   {algo.name}
                 </li>
