@@ -17,6 +17,7 @@ export function WasmProvider({ children }) {
     loadingRef.current = true;
 
     window.Module = {
+      locateFile: function(path) { return '/blas_wasm/' + path; },
       print: function(...args) { _printHandler(...args); },
       printErr: function() {},
       onRuntimeInitialized: function() {

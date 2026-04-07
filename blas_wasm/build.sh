@@ -68,9 +68,9 @@ echo "Using library: $LIBOPENBLAS"
 # ── 2. Compile interactive shell → HTML + JS + WASM ─────────────────────
 echo "=== Compiling shell_cblas.c → shell_cblas.html ==="
 
-# Keep -O0 for shell link: wasm-opt at -O1+ can produce invalid wasm
-# with setjmp/longjmp on newer Emscripten toolchains.
-emcc -O0 \
+# Use native WASM exception handling for setjmp/longjmp to avoid
+# invalid WASM codegen that occurs with the JS-based implementation.
+emcc -O2 \
   -I"$OPENBLAS_DIR" \
   "$SCRIPT_DIR/shell_cblas.c" \
   "$LIBOPENBLAS" \
@@ -83,7 +83,8 @@ emcc -O0 \
   -s EXPORTED_FUNCTIONS='["_main","_run_command","_malloc","_free"]' \
   -s EXPORTED_RUNTIME_METHODS='["stringToUTF8","lengthBytesUTF8"]' \
   -s INVOKE_RUN=0 \
-  -s EXIT_RUNTIME=0
+  -s EXIT_RUNTIME=0 \
+  -s SUPPORT_LONGJMP=emscripten
 
 echo ""
 echo "=== Build complete ==="

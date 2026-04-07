@@ -167,7 +167,10 @@ export default {
     }
 
     if (packedRows.length !== n || !tauVec) {
-      s = stepLog.addStep('Ошибка', 'Не удалось выполнить QR-факторизацию.', null);
+      console.error('dgeqrf output:', JSON.stringify(geqrfOut));
+      const escOut = geqrfOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      s = stepLog.addStep('Ошибка', 'Не удалось выполнить QR-факторизацию.',
+        `<pre style="white-space:pre-wrap">${escOut || '(пустой вывод)'}</pre>`);
       await stepLog.showStep(s);
       return;
     }
