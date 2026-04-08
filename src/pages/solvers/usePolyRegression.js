@@ -217,6 +217,9 @@ export default {
       metrics: { 'R²': R2, 'R²_adj': adjR2, 'RMSE': RMSE, 'MAE': MAE },
     };
 
+    /* Model equation card */
+    chartResult.equation = { text: `y = ${eqStr}`, r2: R2 };
+
     /* 1D case: scatter + polynomial curve */
     if (m === 1) {
       const xs = points.map(p => p.xs[0]);
@@ -236,6 +239,69 @@ export default {
         xs, ys: y, curvePts,
         label: `Данные и полиномиальная кривая (степень ${degree})`
       };
+    }
+
+    /* Partial dependence plots */
+    const featureMeans = new Array(m).fill(0);
+    for (let j = 0; j < m; j++) {
+      for (let i = 0; i < N; i++) featureMeans[j] += points[i].xs[j];
+      featureMeans[j] /= N;
+    }
+    chartResult.partialDependence = [];
+    for (let f = 0; f < m; f++) {
+      const featureVals = points.map(p => p.xs[f]);
+      const fMin = Math.min(...featureVals);
+      const fMax = Math.max(...featureVals);
+      const steps = 80;
+      const curvePts = [];
+      for (let i = 0; i <= steps; i++) {
+        const xv = fMin + (fMax - fMin) * i / steps;
+        const xs = featureMeans.slice();
+        xs[f] = xv;
+        const features = expand(xs);
+        let pred = 0;
+        for (let j = 0; j < p; j++) pred += features[j] * beta[j];
+        curvePts.push([xv, pred]);
+      }
+      chartResult.partialDependence.push({
+        featureName: `x${f + 1}`, featureIdx: f,
+        xs: featureVals, ys: y, curvePts,
+      });
+    }
+
+    /* Residual histogram */
+    const numBins = Math.min(Math.max(Math.ceil(Math.sqrt(N)), 5), 20);
+    const rMin = Math.min(...residuals);
+    const rMax = Math.max(...residuals);
+    const binWidth = (rMax - rMin) / numBins || 1;
+    const bins = new Array(numBins).fill(0);
+    const binEdges = [];
+    for (let i = 0; i <= numBins; i++) binEdges.push(rMin + i * binWidth);
+    for (const r of residuals) {
+      let idx = Math.floor((r - rMin) / binWidth);
+      if (idx >= numBins) idx = numBins - 1;
+      if (idx < 0) idx = 0;
+      bins[idx]++;
+    }
+    chartResult.residualHistogram = { bins, binEdges };
+
+    /* Feature correlation matrix (m > 1) */
+    if (m > 1) {
+      const stds = new Array(m).fill(0);
+      for (let j = 0; j < m; j++) {
+        for (let i = 0; i < N; i++) stds[j] += (points[i].xs[j] - featureMeans[j]) ** 2;
+        stds[j] = Math.sqrt(stds[j] / N);
+      }
+      const corr = Array.from({ length: m }, () => new Array(m).fill(0));
+      for (let a = 0; a < m; a++) {
+        for (let b = 0; b < m; b++) {
+          if (stds[a] === 0 || stds[b] === 0) { corr[a][b] = a === b ? 1 : 0; continue; }
+          let s = 0;
+          for (let i = 0; i < N; i++) s += (points[i].xs[a] - featureMeans[a]) * (points[i].xs[b] - featureMeans[b]);
+          corr[a][b] = s / (N * stds[a] * stds[b]);
+        }
+      }
+      chartResult.correlationMatrix = { matrix: corr, labels: Array.from({ length: m }, (_, i) => `x${i + 1}`) };
     }
 
     return chartResult;

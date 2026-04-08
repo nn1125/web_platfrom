@@ -3,14 +3,9 @@ import { useCallback } from 'react';
 export default function ThemeToggle() {
   const toggle = useCallback(() => {
     const current = document.documentElement.getAttribute('data-theme');
-    const next = current === 'light' ? null : 'light';
-    if (next) {
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.removeItem('theme');
-    }
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
   }, []);
 
   return (

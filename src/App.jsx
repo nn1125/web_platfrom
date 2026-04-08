@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import ThemeToggle from './components/ThemeToggle';
+import Header from './components/Header';
 import { WasmProvider } from './wasm/WasmContext';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -57,7 +57,7 @@ function RegressionRoute({ solverKey }) {
 export default function App() {
   return (
     <WasmProvider>
-      <ThemeToggle />
+      <Header />
       <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
         <Routes>
           <Route path="/" element={<HomePage />} />

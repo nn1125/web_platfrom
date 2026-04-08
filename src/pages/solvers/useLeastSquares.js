@@ -310,6 +310,9 @@ export default {
       metrics: { '‖Ac−b‖': residNorm, 'R²': R2, 'RMSE': RMSE },
     };
 
+    /* Model equation card */
+    chartResult.equation = { text: `y = ${eqStr}`, r2: R2 };
+
     /* 1D: scatter + fitted curve */
     if (m === 1) {
       const xs = points.map(p => p.xs[0]);
@@ -329,6 +332,22 @@ export default {
         label: 'Данные и аппроксимация МНК'
       };
     }
+
+    /* Residual histogram */
+    const numBins = Math.min(Math.max(Math.ceil(Math.sqrt(N)), 5), 20);
+    const rMin = Math.min(...residuals);
+    const rMax = Math.max(...residuals);
+    const binWidth = (rMax - rMin) / numBins || 1;
+    const bins = new Array(numBins).fill(0);
+    const binEdges = [];
+    for (let i = 0; i <= numBins; i++) binEdges.push(rMin + i * binWidth);
+    for (const r of residuals) {
+      let idx = Math.floor((r - rMin) / binWidth);
+      if (idx >= numBins) idx = numBins - 1;
+      if (idx < 0) idx = 0;
+      bins[idx]++;
+    }
+    chartResult.residualHistogram = { bins, binEdges };
 
     return chartResult;
   }
