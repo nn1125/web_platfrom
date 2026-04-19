@@ -15,17 +15,14 @@ else
   JOBS="${JOBS:-4}"
 fi
 
-# ── Clean option ────────────────────────────────────────────────────────
 if [[ "${1:-}" == "clean" ]]; then
   echo "=== Cleaning build artifacts ==="
 
-  # Clean OpenBLAS build artifacts
   if [[ -d "$OPENBLAS_DIR" ]]; then
     echo "Cleaning OpenBLAS build artifacts..."
     make -C "$OPENBLAS_DIR" clean 2>/dev/null || true
   fi
 
-  # Remove generated shell outputs only.
   echo "Removing generated files..."
   rm -f \
     "$SCRIPT_DIR"/shell_cblas.html \
@@ -37,11 +34,8 @@ if [[ "${1:-}" == "clean" ]]; then
   exit 0
 fi
 
-# ── 1. Build OpenBLAS with LAPACK + pthreads ────────────────────────────
 echo "=== Building OpenBLAS (CBLAS + C-LAPACK, threaded) ==="
 
-# Some OpenBLAS trees downloaded from chat apps/browsers carry quarantine xattrs on macOS.
-# That makes helper scripts (e.g. ./c_check) fail with "bad interpreter: Operation not permitted".
 if command -v xattr >/dev/null 2>&1; then
   xattr -dr com.apple.quarantine "$OPENBLAS_DIR" 2>/dev/null || true
 fi
@@ -65,11 +59,8 @@ if [[ -z "$LIBOPENBLAS" ]]; then
 fi
 echo "Using library: $LIBOPENBLAS"
 
-# ── 2. Compile interactive shell → HTML + JS + WASM ─────────────────────
 echo "=== Compiling shell_cblas.c → shell_cblas.html ==="
 
-# Use native WASM exception handling for setjmp/longjmp to avoid
-# invalid WASM codegen that occurs with the JS-based implementation.
 emcc -O2 \
   -I"$OPENBLAS_DIR" \
   "$SCRIPT_DIR/shell_cblas.c" \

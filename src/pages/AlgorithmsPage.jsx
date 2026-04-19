@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { algorithms, groupColor, categoryTitles } from '../data/algorithms';
-import Modal from '../components/Modal';
+import Modal from '../components/ui/Modal';
 
 export default function AlgorithmsPage() {
   const navigate = useNavigate();

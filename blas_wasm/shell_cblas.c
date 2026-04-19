@@ -1,11 +1,3 @@
-/*
- * shell_cblas.c – CBLAS / LAPACKE command dispatcher for WebAssembly
- *
- * Exports run_command(line) which is called from the JS terminal UI.
- * Each command maps to a CBLAS or LAPACKE call, mirroring test_cblas.c
- * functionality and extending it to a full interactive shell.
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,8 +7,6 @@
 #include <setjmp.h>
 #include <cblas.h>
 
-/* Declare LAPACKE functions we use directly instead of including lapacke.h,
-   which conflicts with OpenBLAS's common_interface.h declarations. */
 #define LAPACK_ROW_MAJOR 101
 typedef int lapack_int;
 
@@ -79,7 +69,6 @@ extern lapack_int LAPACKE_dgbsv(int matrix_layout, lapack_int n, lapack_int kl,
 #include <emscripten.h>
 #endif
 
-/* ── tokenizer ───────────────────────────────────────────────────────── */
 
 #define MAX_TOK 512
 #define MAX_LINE 4096
@@ -175,7 +164,6 @@ static enum CBLAS_SIDE parse_side(char c) {
     return (c == 'R' || c == 'r') ? CblasRight : CblasLeft;
 }
 
-/* ── BLAS Level 1 ────────────────────────────────────────────────────── */
 
 static void cmd_ddot(void) {
     if (g_ntok < 2) { printf("Usage: ddot n x1..xn y1..yn\n"); return; }
@@ -300,7 +288,6 @@ static void cmd_drot(void) {
     free(x); free(y);
 }
 
-/* ── BLAS Level 2 ────────────────────────────────────────────────────── */
 
 static void cmd_dgemv(void) {
     if (g_ntok < 4) {
@@ -476,7 +463,6 @@ static void cmd_dtrmv(void) {
     free(A); free(x);
 }
 
-/* ── BLAS Level 3 ────────────────────────────────────────────────────── */
 
 static void cmd_dgemm(void) {
     if (g_ntok < 5) {
@@ -616,7 +602,6 @@ static void cmd_dsymm(void) {
     free(A); free(B); free(C);
 }
 
-/* ── LAPACK ──────────────────────────────────────────────────────────── */
 
 static void cmd_dgesv(void) {
     if (g_ntok < 3) {
@@ -1034,7 +1019,6 @@ static void cmd_dgbsv(void) {
     free(AB); free(B); free(ipiv);
 }
 
-/* ── Sparse Ops (CSR) ───────────────────────────────────────────────── */
 
 static int csr_valid(int m, int n, int nnz, const int *rowptr, const int *colind) {
     if (m < 0 || n < 0 || nnz < 0) return 0;
@@ -1210,7 +1194,6 @@ static void cmd_dgesvd(void) {
     free(A); free(S); free(U); free(Vt); free(superb);
 }
 
-/* ── Utility ─────────────────────────────────────────────────────────── */
 
 static void cmd_threads(void) {
     if (g_ntok >= 2)
@@ -1314,7 +1297,6 @@ static void help(void) {
     printf("\nAll matrices are row-major. Numeric arguments are validated strictly.\n\n");
 }
 
-/* ── Exported command dispatcher ─────────────────────────────────────── */
 
 #ifdef __EMSCRIPTEN__
 EMSCRIPTEN_KEEPALIVE
@@ -1347,7 +1329,6 @@ int run_command(const char *line) {
     return 1;
 }
 
-/* main is not used in browser mode; run_command is called from JS */
 int main(void) {
     printf("CBLAS/LAPACK shell ready. Type 'help' for commands.\n");
     cmd_threads();

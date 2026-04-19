@@ -1,41 +1,41 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
+import Header from './components/ui/Header';
 import { WasmProvider } from './wasm/WasmContext';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const AlgorithmsPage = lazy(() => import('./pages/AlgorithmsPage'));
-const SolverPage = lazy(() => import('./pages/solvers/SolverPage'));
-const NonlinearSolverPage = lazy(() => import('./pages/solvers/NonlinearSolverPage'));
-const RegressionPage = lazy(() => import('./pages/solvers/RegressionPage'));
+const SolverPage = lazy(() => import('./pages/SolverPage'));
+const NonlinearSolverPage = lazy(() => import('./pages/NonlinearSolverPage'));
+const RegressionPage = lazy(() => import('./pages/RegressionPage'));
 
 const solverConfigs = {
-  gauss: () => import('./pages/solvers/useGauss'),
-  lu: () => import('./pages/solvers/useLU'),
-  qr: () => import('./pages/solvers/useQR'),
-  cholesky: () => import('./pages/solvers/useCholesky'),
-  jacobi: () => import('./pages/solvers/useJacobi'),
-  seidel: () => import('./pages/solvers/useSeidel'),
-  sor: () => import('./pages/solvers/useSOR'),
-  minres: () => import('./pages/solvers/useMinRes'),
-  bicg: () => import('./pages/solvers/useBiCG'),
-  gmres: () => import('./pages/solvers/useGMRES'),
+  gauss: () => import('./hooks/solvers/linear/useGauss'),
+  lu: () => import('./hooks/solvers/linear/useLU'),
+  qr: () => import('./hooks/solvers/linear/useQR'),
+  cholesky: () => import('./hooks/solvers/linear/useCholesky'),
+  jacobi: () => import('./hooks/solvers/linear/useJacobi'),
+  seidel: () => import('./hooks/solvers/linear/useSeidel'),
+  sor: () => import('./hooks/solvers/linear/useSOR'),
+  minres: () => import('./hooks/solvers/linear/useMinRes'),
+  bicg: () => import('./hooks/solvers/linear/useBiCG'),
+  gmres: () => import('./hooks/solvers/linear/useGMRES'),
 };
 
 const nonlinearConfigs = {
-  newton: () => import('./pages/solvers/useNewton'),
-  broyden: () => import('./pages/solvers/useBroyden'),
-  iteration: () => import('./pages/solvers/useIteration'),
-  homotopy: () => import('./pages/solvers/useHomotopy'),
-  continuation: () => import('./pages/solvers/useContinuation'),
+  newton: () => import('./hooks/solvers/nonlinear/useNewton'),
+  broyden: () => import('./hooks/solvers/nonlinear/useBroyden'),
+  iteration: () => import('./hooks/solvers/nonlinear/useIteration'),
+  homotopy: () => import('./hooks/solvers/nonlinear/useHomotopy'),
+  continuation: () => import('./hooks/solvers/nonlinear/useContinuation'),
 };
 
 const approxConfigs = {
-  'linear-regression': () => import('./pages/solvers/useLinearRegression'),
-  'poly-regression': () => import('./pages/solvers/usePolyRegression'),
-  rbf: () => import('./pages/solvers/useRBF'),
-  'least-squares': () => import('./pages/solvers/useLeastSquares'),
-  spline: () => import('./pages/solvers/useSpline'),
+  'linear-regression': () => import('./hooks/solvers/approx/useLinearRegression'),
+  'poly-regression': () => import('./hooks/solvers/approx/usePolyRegression'),
+  rbf: () => import('./hooks/solvers/approx/useRBF'),
+  'least-squares': () => import('./hooks/solvers/approx/useLeastSquares'),
+  spline: () => import('./hooks/solvers/approx/useSpline'),
 };
 
 function SolverRoute({ solverKey }) {
