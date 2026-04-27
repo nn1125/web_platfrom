@@ -43,15 +43,15 @@ function SolverRoute({ solverKey }) {
 }
 
 function NonlinearRoute({ solverKey }) {
-  return <NonlinearSolverPage solverKey={solverKey} configLoader={nonlinearConfigs[solverKey]} />;
+  return <NonlinearSolverPage configLoader={nonlinearConfigs[solverKey]} />;
 }
 
 function ApproxRoute({ solverKey }) {
-  return <NonlinearSolverPage solverKey={solverKey} configLoader={approxConfigs[solverKey]} />;
+  return <NonlinearSolverPage configLoader={approxConfigs[solverKey]} />;
 }
 
 function RegressionRoute({ solverKey }) {
-  return <RegressionPage solverKey={solverKey} configLoader={approxConfigs[solverKey]} />;
+  return <RegressionPage configLoader={approxConfigs[solverKey]} />;
 }
 
 export default function App() {

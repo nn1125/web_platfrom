@@ -357,6 +357,11 @@
     padding-left: 0.85rem;
 }
 
+/* Fraction display */
+.frac { white-space: nowrap; }
+.frac sup { font-size: 0.8em; vertical-align: super; }
+.frac sub { font-size: 0.8em; vertical-align: sub; }
+
 /* Highlight classes */
 .imat-yellow {
     background-color: var(--amber-dim) !important;
@@ -634,6 +639,439 @@
     white-space: nowrap;
 }
 
+/* ══════════════════════════════════════════════════════
+   Regression Data Table
+   ══════════════════════════════════════════════════════ */
+.reg-table-wrap {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.reg-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.reg-table thead tr:first-child {
+    background: var(--ghost-bg);
+}
+
+.reg-table__group-header {
+    padding: 0.5rem 0.75rem 0.15rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.reg-table__group-header--x {
+    color: var(--teal);
+    border-bottom: none;
+}
+
+.reg-table__group-header--y {
+    color: var(--indigo);
+    border-left: 2px solid var(--indigo);
+    border-bottom: none;
+}
+
+.reg-table__col-name {
+    padding: 0.1rem 0.75rem 0.45rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+    background: var(--ghost-bg);
+}
+
+.reg-table__col-name--x {
+    color: var(--teal);
+}
+
+.reg-table__col-name--y {
+    color: var(--indigo);
+    border-left: 2px solid var(--indigo);
+}
+
+.reg-table__corner {
+    background: var(--ghost-bg);
+    padding: 0.25rem 0.5rem;
+    width: 32px;
+}
+
+.reg-table__row {
+    transition: background 0.15s;
+}
+
+.reg-table__row:hover {
+    background: var(--ghost-bg);
+}
+
+.reg-table__row:not(:last-child) .reg-table__cell,
+.reg-table__row:not(:last-child) .reg-table__idx {
+    border-bottom: 1px solid var(--border);
+}
+
+.reg-table__idx {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    width: 32px;
+}
+
+.reg-table__cell {
+    padding: 3px 4px;
+}
+
+.reg-table__cell--y {
+    border-left: 2px solid var(--indigo);
+}
+
+.reg-table__input {
+    width: 100%;
+    min-width: 56px;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid rgba(129, 140, 248, 0.3);
+    border-radius: 6px;
+    font: inherit;
+    font-size: 0.9rem;
+    text-align: center;
+    background: transparent;
+    color: var(--text-heading);
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.reg-table__input::placeholder {
+    color: var(--text-dim);
+    opacity: 0.4;
+}
+
+.reg-table__input:hover {
+    background: var(--ghost-bg);
+    border-color: var(--border);
+}
+
+.reg-table__input:focus {
+    outline: none;
+    background: var(--ghost-bg);
+    border-color: var(--teal);
+    box-shadow: 0 0 0 2px var(--teal-dim);
+}
+
+.reg-table__input--y:focus {
+    border-color: var(--indigo);
+    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.15);
+}
+
+.reg-table__del {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.25rem 0.4rem;
+    border-radius: 4px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.reg-table__del:hover {
+    color: var(--red, #ef4444);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* ══════════════════════════════════════════════════════
+   Nonlinear Solver — Step Iteration Cards
+   ══════════════════════════════════════════════════════ */
+
+/* Metrics row (norm cards) */
+.nls-metrics {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.nls-metric {
+    flex: 1;
+    min-width: 100px;
+    background: var(--ghost-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.55rem 0.85rem;
+    text-align: center;
+}
+
+.nls-metric--ok {
+    background: var(--teal-dim);
+    border-color: rgba(125,184,240,0.2);
+}
+
+.nls-metric--warn {
+    background: var(--amber-dim);
+    border-color: rgba(180,83,9,0.2);
+}
+
+.nls-metric__label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.2rem;
+}
+
+.nls-metric__value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    word-break: break-all;
+}
+
+.nls-metric--ok .nls-metric__value {
+    color: var(--teal);
+}
+
+/* Vector display */
+.nls-vecs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.6rem;
+}
+
+.nls-vec {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.85rem;
+    background: var(--ghost-bg);
+    transition: background 0.2s;
+}
+
+.nls-vec--accent {
+    background: var(--teal-dim);
+    border: 1px solid rgba(125,184,240,0.12);
+}
+
+.nls-vec__label {
+    font-weight: 600;
+    color: var(--teal);
+    min-width: 32px;
+    font-size: 0.8rem;
+}
+
+.nls-vec__vals {
+    color: var(--text);
+}
+
+.nls-vec--accent .nls-vec__vals {
+    color: var(--teal);
+    font-weight: 600;
+}
+
+/* Jacobian collapsible */
+.nls-jac-details {
+    margin-top: 0.25rem;
+}
+
+.nls-jac-summary {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0.3rem 0;
+    user-select: none;
+    transition: color 0.15s;
+}
+
+.nls-jac-summary:hover {
+    color: var(--text-muted);
+}
+
+/* Jacobian grid */
+.nls-jac {
+    display: grid;
+    gap: 4px;
+    margin-top: 0.4rem;
+    width: fit-content;
+}
+
+.nls-jac__corner {
+    /* empty top-left cell */
+}
+
+.nls-jac__col-hdr {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--indigo);
+    text-align: center;
+    padding: 0.2rem 0.5rem;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+.nls-jac__row-hdr {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--teal);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 0.5rem;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+.nls-jac__cell {
+    background: var(--ghost-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    text-align: center;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    min-width: 60px;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.nls-jac__cell:hover {
+    background: var(--indigo-dim);
+    border-color: rgba(129,140,248,0.25);
+}
+
+/* System display (initial step) */
+.nls-system {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.nls-system__eq {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.7rem;
+    background: var(--ghost-bg);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--text);
+}
+
+.nls-system__fn {
+    font-weight: 700;
+    color: var(--teal);
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    white-space: nowrap;
+}
+
+.nls-system__expr {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    color: var(--text-heading);
+}
+
+/* Result card */
+.nls-result__info {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin: 0.6rem 0;
+}
+
+.nls-result__info strong {
+    color: var(--teal);
+}
+
+/* Homotopy progress bar */
+.nls-progress {
+    margin: 0.5rem 0;
+    background: var(--ghost-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    height: 22px;
+    position: relative;
+    border: 1px solid var(--border);
+}
+
+.nls-progress__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal-dim), var(--teal));
+    transition: width 0.3s;
+    border-radius: 8px;
+}
+
+.nls-progress__text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    line-height: 22px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* ══════════════════════════════════════════════════════
+   Nonlinear Solver Table
+   ══════════════════════════════════════════════════════ */
+.nls-table__hint {
+    padding: 0.15rem 0.75rem 0.45rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    background: var(--ghost-bg);
+    font-weight: 400;
+    letter-spacing: 0.01em;
+}
+
+.nls-table__label {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--teal);
+    text-align: right;
+    white-space: nowrap;
+    width: 40px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+.nls-table__suffix {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    width: 40px;
+}
+
+.nls-table__eq-input {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace !important;
+    text-align: left !important;
+    padding-left: 0.6rem !important;
+}
+
+.nls-table .reg-table__row:not(:last-child) .reg-table__cell,
+.nls-table .reg-table__row:not(:last-child) .nls-table__label,
+.nls-table .reg-table__row:not(:last-child) .nls-table__suffix {
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Charts fade-in ── */
+@keyframes chartsAppear {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.charts-appear {
+    animation: chartsAppear 0.5s ease-out both;
+}
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
     .gauss-page { padding: 1rem 0.75rem 3rem; }
@@ -648,4 +1086,14 @@
     .imat-op-label { font-size: 0.8rem; }
     .imat-iter-row { flex-wrap: wrap; gap: 0.3rem; font-size: 0.78rem; }
     .imat-iter-label { min-width: 30px; }
+    .reg-table__input { min-width: 48px; font-size: 0.82rem; }
+    .reg-table__del { font-size: 0.9rem; }
+    .nls-metrics { gap: 0.4rem; }
+    .nls-metric { min-width: 80px; padding: 0.4rem 0.6rem; }
+    .nls-metric__value { font-size: 0.82rem; }
+    .nls-vec { font-size: 0.78rem; flex-wrap: wrap; }
+    .nls-system__eq { font-size: 0.82rem; flex-wrap: wrap; }
+    .nls-jac__cell { min-width: 48px; padding: 0.3rem 0.45rem; font-size: 0.78rem; }
+    .nls-jac__col-hdr { font-size: 0.65rem; padding: 0.15rem 0.3rem; }
+    .nls-jac__row-hdr { font-size: 0.68rem; }
 }

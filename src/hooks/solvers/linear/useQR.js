@@ -1,7 +1,8 @@
 import {
-  fmtNum, parseVec, parseMat, animSleep, renderAugmented, renderMatrix,
+  fmtNum, fmtNumHtml, parseVec, parseMat, animSleep, renderAugmented, renderMatrix,
   renderImatMatrix, updateCell, highlightCell, clearHighlights,
-  flattenMatrix, solutionHtml, verifyWithDgesv
+  flattenMatrix, solutionHtml, verifyWithDgesv,
+  Frac, isAllInt, toFracMatrix, toFracVec
 } from '../../../utils/solverUtils';
 
 export default {
@@ -20,8 +21,11 @@ export default {
     const origA = data.A.map(r => [...r]);
     const origB = [...data.b];
     const A = origA.map(r => [...r]);
+    const fmtV = fmtNumHtml;
 
-    /* Phase 1: Animated Householder QR */
+    /* ═══════════════════════════════════════════════════
+       Phase 1: Animated Householder QR
+       ═══════════════════════════════════════════════════ */
     renderImatMatrix(viz, A, n);
     viz.setStatus('Исходная матрица A');
     viz.setOpLabel('');
@@ -134,103 +138,242 @@ export default {
     let html = '<div style="display:flex;gap:2rem;flex-wrap:wrap;justify-content:center">';
     html += '<div><div style="text-align:center;font-weight:600;margin-bottom:0.5rem;color:var(--indigo)">Q (ортогональная)</div>';
     html += '<table class="imat-table"><tbody>';
-    for (let i = 0; i < n; i++) { html += '<tr>'; for (let j = 0; j < n; j++) html += `<td class="imat-cell imat-blue">${fmtNum(Qfull[i][j])}</td>`; html += '</tr>'; }
+    for (let i = 0; i < n; i++) { html += '<tr>'; for (let j = 0; j < n; j++) html += `<td class="imat-cell imat-blue">${fmtV(Qfull[i][j])}</td>`; html += '</tr>'; }
     html += '</tbody></table></div>';
     html += '<div><div style="text-align:center;font-weight:600;margin-bottom:0.5rem;color:var(--teal)">R (верхнетреугольная)</div>';
     html += '<table class="imat-table"><tbody>';
-    for (let i = 0; i < n; i++) { html += '<tr>'; for (let j = 0; j < n; j++) { const cls = i <= j ? 'imat-cell imat-green' : 'imat-cell'; html += `<td class="${cls}">${fmtNum(A[i][j])}</td>`; } html += '</tr>'; }
+    for (let i = 0; i < n; i++) { html += '<tr>'; for (let j = 0; j < n; j++) { const cls = i <= j ? 'imat-cell imat-green' : 'imat-cell'; html += `<td class="${cls}">${fmtV(A[i][j])}</td>`; } html += '</tr>'; }
     html += '</tbody></table></div></div>';
     viz.setContainerHTML(html);
     await animSleep(viz.getSpeed() * 1.5, skipRef);
 
-    /* Phase 2: BLAS */
+    /* ═══════════════════════════════════════════════════
+       Phase 2: Step log (mirrors the visualization)
+       ═══════════════════════════════════════════════════ */
     stepLog.show();
-    let s = stepLog.addStep('Исходная система', `Размерность: ${n} &times; ${n}`, renderAugmented(origA, origB, n));
+    let s;
+
+    /* Recompute step by step for the log */
+    const SA = origA.map(r => [...r]);
+    const SQ = Array.from({ length: n }, (_, i) =>
+      Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+
+    s = stepLog.addStep('Исходная система', `Размерность: ${n} × ${n}`,
+      renderAugmented(origA, origB, n));
     await stepLog.showStep(s);
 
-    const flatA = flattenMatrix(origA, n);
-    const geqrfCmd = `dgeqrf ${n} ${n} ${flatA.join(' ')}`;
-    const geqrfOut = runBlas(geqrfCmd);
-    s = stepLog.addStep('QR-факторизация (dgeqrf)', 'LAPACKE_dgeqrf: разложение A = QR через отражатели Хаусхолдера', null, geqrfCmd);
-    await stepLog.showStep(s);
+    for (let k = 0; k < n; k++) {
+      const x = [];
+      for (let i = k; i < n; i++) x.push(SA[i][k]);
 
-    const qrLines = geqrfOut.split('\n');
-    const packedRows = [];
-    let tauVec = null;
-    for (const line of qrLines) {
-      if (line.includes('tau:')) {
-        tauVec = parseVec(line);
-      } else {
-        const vec = parseVec(line);
-        if (vec) packedRows.push(vec);
+      let normX = 0;
+      for (let i = 0; i < x.length; i++) normX += x[i] * x[i];
+      normX = Math.sqrt(normX);
+      if (normX < 1e-15) continue;
+
+      const sign = x[0] >= 0 ? 1 : -1;
+      const alpha = -sign * normX;
+      const v = [...x];
+      v[0] -= alpha;
+      let normV = 0;
+      for (let i = 0; i < v.length; i++) normV += v[i] * v[i];
+      normV = Math.sqrt(normV);
+      if (normV < 1e-15) continue;
+      for (let i = 0; i < v.length; i++) v[i] /= normV;
+
+      /* Apply H to SA */
+      for (let j = k; j < n; j++) {
+        let dot = 0;
+        for (let i = 0; i < v.length; i++) dot += v[i] * SA[k + i][j];
+        for (let i = 0; i < v.length; i++) {
+          SA[k + i][j] -= 2 * v[i] * dot;
+          if (Math.abs(SA[k + i][j]) < 1e-12) SA[k + i][j] = 0;
+        }
       }
-    }
+      /* Accumulate Q */
+      for (let i = 0; i < n; i++) {
+        let dot = 0;
+        for (let j2 = 0; j2 < v.length; j2++) dot += SQ[i][k + j2] * v[j2];
+        for (let j2 = 0; j2 < v.length; j2++) {
+          SQ[i][k + j2] -= 2 * dot * v[j2];
+          if (Math.abs(SQ[i][k + j2]) < 1e-12) SQ[i][k + j2] = 0;
+        }
+      }
 
-    if (packedRows.length !== n || !tauVec) {
-      console.error('dgeqrf output:', JSON.stringify(geqrfOut));
-      const escOut = geqrfOut.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      s = stepLog.addStep('Ошибка', 'Не удалось выполнить QR-факторизацию.',
-        `<pre style="white-space:pre-wrap">${escOut || '(пустой вывод)'}</pre>`);
+      /* Show step: reflector + current R + current Q */
+      let stepHtml = '<div style="font-size:0.93rem;line-height:1.7">';
+      stepHtml += `<div style="margin-bottom:0.4rem">Столбец: x = [${x.map(xi => fmtV(xi)).join(', ')}],  ‖x‖ = ${fmtV(normX)}</div>`;
+      stepHtml += `<div style="margin-bottom:0.5rem">v = [${v.map(vi => fmtV(vi)).join(', ')}]</div>`;
+      stepHtml += '</div>';
+      stepHtml += '<div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start">';
+      stepHtml += '<div><div style="font-weight:600;margin-bottom:0.4rem;font-size:0.9rem;color:var(--text-muted)">Матрица → R</div>' +
+        renderMatrix(SA, n, { upper: true }) + '</div>';
+      stepHtml += '<div><div style="font-weight:600;margin-bottom:0.4rem;font-size:0.9rem;color:var(--indigo)">Q</div>' +
+        renderMatrix(SQ, n, { orthogonal: true }) + '</div>';
+      stepHtml += '</div>';
+
+      s = stepLog.addStep(`Шаг ${k + 1}: отражатель Хаусхолдера`,
+        `H${k + 1} = I − 2vvᵀ  →  обнуление столбца ${k + 1} ниже диагонали`, stepHtml);
       await stepLog.showStep(s);
-      return;
     }
 
-    const Rmat = Array.from({ length: n }, (_, i) =>
-      Array.from({ length: n }, (_, j) => (j >= i ? packedRows[i][j] : 0))
-    );
-
-    const flatPacked = [];
-    for (let i = 0; i < n; i++)
-      for (let j = 0; j < n; j++)
-        flatPacked.push(fmtNum(packedRows[i][j]));
-    const orgqrCmd = `dorgqr ${n} ${n} ${n} ${flatPacked.join(' ')} ${tauVec.map(fmtNum).join(' ')}`;
-    const orgqrOut = runBlas(orgqrCmd);
-    s = stepLog.addStep('Построение матрицы Q (dorgqr)', 'LAPACKE_dorgqr: явное построение ортогональной матрицы Q', null, orgqrCmd);
-    await stepLog.showStep(s);
-
-    const qRows = parseMat(orgqrOut);
-    if (qRows.length !== n) {
-      s = stepLog.addStep('Ошибка', 'Не удалось построить матрицу Q.', null);
-      await stepLog.showStep(s);
-      return;
-    }
-
+    /* ── Q and R ── */
     let qrHtml = '<div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start">';
-    qrHtml += '<div><h3 style="color:var(--indigo);font-size:0.95rem;margin-bottom:0.5rem">Q (ортогональная)</h3>';
-    qrHtml += renderMatrix(qRows, n, { orthogonal: true });
+    qrHtml += '<div><h3 style="color:var(--indigo);font-size:0.95rem;margin-bottom:0.5rem">Q (ортогональная)</h3>' +
+      renderMatrix(SQ, n, { orthogonal: true }) + '</div>';
+    qrHtml += '<div><h3 style="color:var(--teal);font-size:0.95rem;margin-bottom:0.5rem">R (верхнетреугольная)</h3>' +
+      renderMatrix(SA, n, { upper: true }) + '</div>';
     qrHtml += '</div>';
-    qrHtml += '<div><h3 style="color:var(--teal);font-size:0.95rem;margin-bottom:0.5rem">R (верхнетреугольная)</h3>';
-    qrHtml += renderMatrix(Rmat, n, { upper: true });
-    qrHtml += '</div></div>';
     s = stepLog.addStep('Матрицы Q и R', 'A = Q · R', qrHtml);
     await stepLog.showStep(s);
 
-    const qtb = new Array(n).fill(0);
-    for (let i = 0; i < n; i++)
-      for (let j = 0; j < n; j++)
-        qtb[i] += qRows[j][i] * origB[j];
+    const exact = isAllInt(data.A, data.b);
 
-    s = stepLog.addStep('Вычисление Q<sup>T</sup>b', `Q<sup>T</sup>b = [${qtb.map(fmtNum).join(', ')}]`, null);
-    await stepLog.showStep(s);
+    if (exact) {
+      /* QR uses sqrt → Q, R are always float.
+         For integer inputs solve Ax=b exactly via fractions.
+         Show Gauss elimination + exact back substitution. */
+      const EA = toFracMatrix(data.A);
+      const Eb = toFracVec(data.b);
+      let singular = false;
 
-    const flatR = [];
-    for (let i = 0; i < n; i++)
-      for (let j = 0; j < n; j++)
-        flatR.push(fmtNum(Rmat[i][j]));
-    const trsvCmd = `dtrsv U ${n} ${flatR.join(' ')} ${qtb.map(fmtNum).join(' ')}`;
-    const trsvOut = runBlas(trsvCmd);
-    const solution = parseVec(trsvOut);
+      /* Exact Gauss elimination */
+      for (let k = 0; k < n - 1; k++) {
+        let pr = k, mx = EA[k][k].absVal();
+        for (let i = k + 1; i < n; i++) if (EA[i][k].absVal() > mx) { mx = EA[i][k].absVal(); pr = i; }
+        if (pr !== k) { const t = EA[k]; EA[k] = EA[pr]; EA[pr] = t; const tb = Eb[k]; Eb[k] = Eb[pr]; Eb[pr] = tb; }
+        if (EA[k][k].isZero()) { singular = true; break; }
+        for (let i = k + 1; i < n; i++) {
+          if (EA[i][k].isZero()) continue;
+          const m = EA[i][k].div(EA[k][k]);
+          for (let j = k; j < n; j++) EA[i][j] = EA[i][j].sub(m.mul(EA[k][j]));
+          Eb[i] = Eb[i].sub(m.mul(Eb[k]));
+        }
+      }
 
-    if (solution) {
+      if (!singular && !EA[n-1][n-1].isZero()) {
+        s = stepLog.addStep('Верхнетреугольная система',
+          'Приведение исходной Ax = b к верхнетреугольному виду (точная арифметика)',
+          renderAugmented(EA, Eb, n));
+        await stepLog.showStep(s);
+
+        /* Exact back substitution */
+        const exactSol = new Array(n);
+        for (let i = n - 1; i >= 0; i--) {
+          let sum = Eb[i];
+          for (let j = i + 1; j < n; j++) sum = sum.sub(EA[i][j].mul(exactSol[j]));
+          exactSol[i] = sum.div(EA[i][i]);
+        }
+
+        let backHtml = '<div style="font-size:0.93rem;line-height:1.8">';
+        for (let i = n - 1; i >= 0; i--) {
+          backHtml += '<div style="margin:0.2rem 0">';
+          let hasTerms = false;
+          for (let j = i + 1; j < n; j++) if (!EA[i][j].isZero()) { hasTerms = true; break; }
+          if (!hasTerms) {
+            backHtml += `<strong>x<sub>${i+1}</sub></strong> = b<sub>${i+1}</sub> / a<sub>${i+1},${i+1}</sub>` +
+              ` = ${fmtV(Eb[i])} / ${fmtV(EA[i][i])}` +
+              ` = <strong style="color:var(--teal)">${fmtV(exactSol[i])}</strong>`;
+          } else {
+            backHtml += `<strong>x<sub>${i+1}</sub></strong> = (b<sub>${i+1}</sub>`;
+            for (let j = i + 1; j < n; j++) if (!EA[i][j].isZero()) backHtml += ` − a<sub>${i+1},${j+1}</sub>·x<sub>${j+1}</sub>`;
+            backHtml += `) / a<sub>${i+1},${i+1}</sub> = (${fmtV(Eb[i])}`;
+            for (let j = i + 1; j < n; j++) {
+              if (!EA[i][j].isZero()) {
+                const aNeg = EA[i][j].n < 0;
+                const xNeg = exactSol[j].n < 0;
+                backHtml += ` − ${aNeg ? '(' + fmtV(EA[i][j]) + ')' : fmtV(EA[i][j])}·${xNeg ? '(' + fmtV(exactSol[j]) + ')' : fmtV(exactSol[j])}`;
+              }
+            }
+            backHtml += `) / ${fmtV(EA[i][i])} = <strong style="color:var(--teal)">${fmtV(exactSol[i])}</strong>`;
+          }
+          backHtml += '</div>';
+        }
+        backHtml += '</div>';
+        s = stepLog.addStep('Обратная подстановка',
+          'Решаем верхнетреугольную систему снизу вверх (точные дроби)', backHtml);
+        await stepLog.showStep(s);
+
+        let solHtml = solutionHtml(exactSol, n);
+        const numSol = exactSol.map(f => f.toNumber());
+        solHtml += verifyWithDgesv(runBlas, origA, origB, numSol, n);
+        s = stepLog.addStep('Результат', 'Точное решение (рациональная арифметика)', solHtml);
+      } else {
+        s = stepLog.addStep('Ошибка', 'Матрица вырождена — система не имеет единственного решения.', null);
+      }
+    } else {
+      /* ── Float path: Qᵀb + back sub ── */
+      const qtb = new Array(n).fill(0);
+      for (let i = 0; i < n; i++)
+        for (let j = 0; j < n; j++)
+          qtb[i] += SQ[j][i] * origB[j];
+      for (let i = 0; i < n; i++) if (Math.abs(qtb[i]) < 1e-12) qtb[i] = 0;
+
+      let qtbHtml = '<div style="font-size:0.93rem;line-height:1.8">';
+      for (let i = 0; i < n; i++) {
+        qtbHtml += `<div style="margin:0.2rem 0"><strong>(Q<sup>T</sup>b)<sub>${i+1}</sub></strong> = `;
+        const parts = [];
+        for (let j = 0; j < n; j++) {
+          if (Math.abs(SQ[j][i]) < 1e-15) continue;
+          const qNeg = SQ[j][i] < 0;
+          const bNeg = origB[j] < 0;
+          parts.push(`${qNeg ? '(' + fmtV(SQ[j][i]) + ')' : fmtV(SQ[j][i])}·${bNeg ? '(' + fmtV(origB[j]) + ')' : fmtV(origB[j])}`);
+        }
+        qtbHtml += parts.join(' + ');
+        qtbHtml += ` = <strong style="color:var(--teal)">${fmtV(qtb[i])}</strong></div>`;
+      }
+      qtbHtml += '</div>';
+      s = stepLog.addStep('Вычисление Q<sup>T</sup>b',
+        'Умножаем транспонированную Q на b', qtbHtml);
+      await stepLog.showStep(s);
+
+      const R = SA;
+      const solution = new Array(n);
+      for (let i = n - 1; i >= 0; i--) {
+        let sum = qtb[i];
+        for (let j = i + 1; j < n; j++) {
+          if (Math.abs(R[i][j]) > 1e-15) sum -= R[i][j] * solution[j];
+        }
+        solution[i] = sum / R[i][i];
+        if (Math.abs(solution[i]) < 1e-12) solution[i] = 0;
+      }
+
+      let backHtml = '<div style="font-size:0.93rem;line-height:1.8">';
+      for (let i = n - 1; i >= 0; i--) {
+        backHtml += '<div style="margin:0.2rem 0">';
+        let hasTerms = false;
+        for (let j = i + 1; j < n; j++) if (Math.abs(R[i][j]) > 1e-15) { hasTerms = true; break; }
+        if (!hasTerms) {
+          backHtml += `<strong>x<sub>${i+1}</sub></strong> = (Q<sup>T</sup>b)<sub>${i+1}</sub> / r<sub>${i+1},${i+1}</sub>` +
+            ` = ${fmtV(qtb[i])} / ${fmtV(R[i][i])}` +
+            ` = <strong style="color:var(--teal)">${fmtV(solution[i])}</strong>`;
+        } else {
+          backHtml += `<strong>x<sub>${i+1}</sub></strong> = ((Q<sup>T</sup>b)<sub>${i+1}</sub>`;
+          for (let j = i + 1; j < n; j++) if (Math.abs(R[i][j]) > 1e-15) backHtml += ` − r<sub>${i+1},${j+1}</sub>·x<sub>${j+1}</sub>`;
+          backHtml += `) / r<sub>${i+1},${i+1}</sub> = (${fmtV(qtb[i])}`;
+          for (let j = i + 1; j < n; j++) {
+            if (Math.abs(R[i][j]) > 1e-15) {
+              const rNeg = R[i][j] < 0;
+              const xNeg = solution[j] < 0;
+              backHtml += ` − ${rNeg ? '(' + fmtV(R[i][j]) + ')' : fmtV(R[i][j])}·${xNeg ? '(' + fmtV(solution[j]) + ')' : fmtV(solution[j])}`;
+            }
+          }
+          backHtml += `) / ${fmtV(R[i][i])} = <strong style="color:var(--teal)">${fmtV(solution[i])}</strong>`;
+        }
+        backHtml += '</div>';
+      }
+      backHtml += '</div>';
+      s = stepLog.addStep('Обратная подстановка: Rx = Q<sup>T</sup>b',
+        'R — верхнетреугольная, решаем снизу вверх', backHtml);
+      await stepLog.showStep(s);
+
       let solHtml = solutionHtml(solution, n);
       solHtml += verifyWithDgesv(runBlas, origA, origB, solution, n);
-      s = stepLog.addStep('Результат', 'Rx = Q<sup>T</sup>b решена обратной подстановкой (dtrsv)', solHtml, trsvCmd);
-      await stepLog.showStep(s);
-      viz.setStatus('Решение найдено!');
-      viz.setOpLabel('x = R⁻¹ · Qᵀ · b');
-    } else {
-      s = stepLog.addStep('Ошибка', 'Не удалось решить систему Rx = Q<sup>T</sup>b.', null, trsvCmd);
-      await stepLog.showStep(s);
+      s = stepLog.addStep('Результат', null, solHtml);
     }
+
+    await stepLog.showStep(s);
+    viz.setStatus('Решение найдено!');
+    viz.setOpLabel('x = R⁻¹ · Qᵀ · b');
   }
 };

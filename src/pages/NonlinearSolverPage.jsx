@@ -6,7 +6,7 @@ import StepLog from '../components/solver/StepLog';
 import WasmStatus from '../components/solver/WasmStatus';
 import AlertModal from '../components/ui/AlertModal';
 
-export default function NonlinearSolverPage({ solverKey, configLoader }) {
+export default function NonlinearSolverPage({ configLoader }) {
   const navigate = useNavigate();
   const { wasmReady, runBlas } = useWasm();
   const [config, setConfig] = useState(null);
@@ -135,71 +135,90 @@ export default function NonlinearSolverPage({ solverKey, configLoader }) {
             <button className="btn btn--ghost" onClick={handleExample}>Пример</button>
           </div>
 
-          <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
-              {config.systemLabel || 'Система уравнений F(x) = 0'}
-            </h3>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: '0.75rem' }}>
-              Переменные: {varNames.join(', ')}. Доступные функции: sin, cos, tan, exp, log, sqrt, abs, pow, PI, E
-            </p>
-            {equations.map((eq, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', minWidth: 30, color: 'var(--teal)' }}>
-                  {config.eqPrefix ? config.eqPrefix(i) : `f${i + 1} =`}
-                </span>
-                <input
-                  type="text"
-                  value={eq}
-                  onChange={e => {
-                    const next = [...equations];
-                    next[i] = e.target.value;
-                    setEquations(next);
-                  }}
-                  placeholder={config.eqPlaceholder
-                    ? config.eqPlaceholder(i, varNames)
-                    : `например: ${varNames[0]}^2 + ${varNames.length > 1 ? varNames[1] : varNames[0]} - 1`}
-                  style={{
-                    flex: 1, padding: '0.4rem 0.6rem', border: '1px solid var(--border)',
-                    borderRadius: 8, font: 'inherit', fontSize: '0.9rem',
-                    background: 'var(--ghost-bg)', color: 'var(--text-heading)',
-                    fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace"
-                  }}
-                />
-                {config.eqSuffix
-                  ? <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{config.eqSuffix(i, varNames)}</span>
-                  : <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>= 0</span>}
-              </div>
-            ))}
+          {/* Equations table */}
+          <div className="reg-table-wrap">
+            <table className="reg-table nls-table">
+              <thead>
+                <tr>
+                  <th className="reg-table__corner"></th>
+                  <th className="reg-table__group-header reg-table__group-header--x">
+                    {config.systemLabel || 'Система уравнений F(x) = 0'}
+                  </th>
+                  <th className="reg-table__corner"></th>
+                </tr>
+                <tr>
+                  <th className="reg-table__corner"></th>
+                  <th className="nls-table__hint">
+                    Переменные: {varNames.join(', ')}. Функции: sin, cos, tan, exp, log, sqrt, abs, pow, PI, E
+                  </th>
+                  <th className="reg-table__corner"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {equations.map((eq, i) => (
+                  <tr key={i} className="reg-table__row">
+                    <td className="nls-table__label">
+                      {config.eqPrefix ? config.eqPrefix(i) : `f${i + 1}`}
+                    </td>
+                    <td className="reg-table__cell">
+                      <input
+                        type="text"
+                        value={eq}
+                        onChange={e => {
+                          const next = [...equations];
+                          next[i] = e.target.value;
+                          setEquations(next);
+                        }}
+                        placeholder={config.eqPlaceholder
+                          ? config.eqPlaceholder(i, varNames)
+                          : `${varNames[0]}^2 + ${varNames.length > 1 ? varNames[1] : varNames[0]} - 1`}
+                        className="reg-table__input nls-table__eq-input"
+                      />
+                    </td>
+                    <td className="nls-table__suffix">
+                      {config.eqSuffix ? config.eqSuffix(i, varNames) : '= 0'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
-          <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
-              Начальное приближение x⁰
-            </h3>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {initGuess.map((val, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <label style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>
-                    {varNames[i]} =
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={val}
-                    onChange={e => {
-                      const next = [...initGuess];
-                      next[i] = e.target.value;
-                      setInitGuess(next);
-                    }}
-                    style={{
-                      width: 70, padding: '0.4rem 0.5rem', border: '1px solid var(--border)',
-                      borderRadius: 8, font: 'inherit', fontSize: '0.9rem', textAlign: 'center',
-                      background: 'var(--ghost-bg)', color: 'var(--text-heading)',
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+          {/* Initial guess table */}
+          <div className="reg-table-wrap">
+            <table className="reg-table nls-table">
+              <thead>
+                <tr>
+                  <th className="reg-table__group-header reg-table__group-header--x" colSpan={size + 1}>
+                    Начальное приближение x⁰
+                  </th>
+                </tr>
+                <tr>
+                  {varNames.map((name, j) => (
+                    <th key={j} className="reg-table__col-name reg-table__col-name--x">{name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="reg-table__row">
+                  {initGuess.map((val, i) => (
+                    <td key={i} className="reg-table__cell">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={val}
+                        onChange={e => {
+                          const next = [...initGuess];
+                          next[i] = e.target.value;
+                          setInitGuess(next);
+                        }}
+                        className="reg-table__input"
+                      />
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           {config.extraParams && (

@@ -1,4 +1,4 @@
-import { fmtNum, parseVec } from '../../../utils/solverUtils';
+import { fmtNum, parseVec, parseMat, buildRegTable } from '../../../utils/solverUtils';
 
 /* ── Generate polynomial feature names and expansion ── */
 function polyFeatures(xs, m, degree) {
@@ -52,16 +52,11 @@ export default {
   prefix: 'polyreg',
   exampleFeatures: 1,
   exampleData: [
-    { xs: [0.5], y: 0.6 },
-    { xs: [1.0], y: 1.5 },
-    { xs: [1.5], y: 3.5 },
-    { xs: [2.0], y: 6.2 },
-    { xs: [2.5], y: 10.0 },
-    { xs: [3.0], y: 14.5 },
-    { xs: [3.5], y: 20.1 },
-    { xs: [4.0], y: 26.8 },
-    { xs: [4.5], y: 34.0 },
-    { xs: [5.0], y: 42.5 },
+    { xs: [1], y: 1 },
+    { xs: [2], y: 4 },
+    { xs: [3], y: 9 },
+    { xs: [4], y: 16 },
+    { xs: [5], y: 25 },
   ],
   extraParams: [
     { key: 'degree', label: 'Степень d =', defaultValue: '3', inputMode: 'numeric', width: '50px' },
@@ -110,28 +105,45 @@ export default {
     /* ── Step log ── */
     stepLog.show();
 
-    let s = stepLog.addStep('Исходные данные',
-      `Число наблюдений: ${N}<br>Число исходных признаков: ${m}<br>Степень полинома: ${degree}<br>` +
-      `Число полиномиальных признаков (с intercept): ${p}<br><br>` +
-      `Признаки: ${featureNames.join(', ')}`);
+    /* ── Step 1: Input data ── */
+    const dataCols = Array.from({ length: m }, (_, j) => ({ name: `x${j + 1}`, group: 'x' })).concat({ name: 'y', group: 'y' });
+    const dataRows = points.map(pt => ({
+      values: pt.xs.map(v => fmtNum(v)).concat(fmtNum(pt.y)),
+      yStart: m,
+    }));
+    let s = stepLog.addStep('Шаг 1 · Исходные данные',
+      `Наблюдений: <strong>${N}</strong>, признаков: <strong>${m}</strong>, степень полинома: <strong>${degree}</strong><br>` +
+      `Ищем модель: <strong>y = β₀ + β₁·x + β₂·x² + … + β${degree}·x^${degree}</strong>`,
+      buildRegTable(dataCols, dataRows));
     await stepLog.showStep(s);
 
-    /* Show XᵀX (only if small enough) */
+    /* ── Step 2: Polynomial expansion ── */
+    const polyColNames = featureNames.map(n => ({ name: n, group: 'x' })).concat({ name: 'y', group: 'y' });
+    const polyRows = X.map((row, i) => ({
+      values: row.map(v => fmtNum(v)).concat(fmtNum(y[i])),
+      yStart: p,
+    }));
+    let polyHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Раскрываем полиномиальные признаки (каждый x возводим в степени 1…' + degree + '):</div>';
+    polyHtml += buildRegTable(polyColNames, polyRows);
+    s = stepLog.addStep('Шаг 2 · Матрица плана X (полиномиальное расширение)',
+      `Размер X: ${N} × ${p} (${p} признаков: ${featureNames.join(', ')})`, polyHtml);
+    await stepLog.showStep(s);
+
+    /* ── Step 3: Normal equations ── */
     if (p <= 8) {
-      let matHtml = '<table class="aug-matrix"><tbody>';
-      for (let i = 0; i < p; i++) {
-        matHtml += '<tr>';
-        for (let j = 0; j < p; j++) matHtml += `<td>${fmtNum(XtX[i][j])}</td>`;
-        matHtml += `<td class="aug-sep">${fmtNum(Xty[i])}</td>`;
-        matHtml += '</tr>';
-      }
-      matHtml += '</tbody></table>';
-      s = stepLog.addStep('Нормальные уравнения (XᵀX)β = Xᵀy',
-        `Размер: ${p} × ${p}`, matHtml);
+      let xtxDetail = `Умножаем Xᵀ (${p}×${N}) на X (${N}×${p}), получаем XᵀX (${p}×${p}).<br>` +
+        `Умножаем Xᵀ (${p}×${N}) на y (${N}×1), получаем Xᵀy (${p}×1).`;
+      const xtxCols = featureNames.map(n => ({ name: n, group: 'x' })).concat({ name: 'Xᵀy', group: 'y' });
+      let matHtml = '<div style="margin-bottom:0.3rem;font-size:0.85rem;color:var(--text-muted)">Расширенная матрица [XᵀX | Xᵀy]:</div>';
+      matHtml += buildRegTable(
+        xtxCols,
+        XtX.map((row, i) => ({ values: row.map(v => fmtNum(v)).concat(fmtNum(Xty[i])), yStart: p }))
+      );
+      s = stepLog.addStep('Шаг 3 · Нормальные уравнения (XᵀX)β = Xᵀy', xtxDetail, matHtml);
       await stepLog.showStep(s);
     }
 
-    /* ── Solve via BLAS dgesv ── */
+    /* ── Step 4: Solve via BLAS dgesv ── */
     const flatXtX = [];
     for (let i = 0; i < p; i++)
       for (let j = 0; j < p; j++)
@@ -139,7 +151,8 @@ export default {
 
     const blasCmd = `dgesv ${p} 1 ${flatXtX.join(' ')} ${Xty.map(fmtNum).join(' ')}`;
     const blasOut = runBlas(blasCmd);
-    const beta = parseVec(blasOut);
+    const betaMat = parseMat(blasOut);
+    const beta = betaMat.length > 0 ? betaMat.flat() : null;
 
     if (!beta) {
       s = stepLog.addStep('Ошибка',
@@ -148,10 +161,15 @@ export default {
       return null;
     }
 
-    s = stepLog.addStep('Решение через LAPACKE_dgesv',
-      `Коэффициенты β (${p} штук):<br>` +
-      featureNames.map((name, i) => `${name}: ${fmtNum(beta[i])}`).join('<br>'),
-      null, blasCmd);
+    const coefNames = featureNames.map((n, i) => i === 0 ? 'β₀ (свободный член)' : `β${i} (при ${n})`);
+    let solveHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Решаем систему линейных уравнений и получаем коэффициенты β:</div>';
+    solveHtml += '<div class="sol-vec">';
+    for (let i = 0; i < p; i++) {
+      solveHtml += `<div class="sol-item">${coefNames[i]} = <strong>${fmtNum(beta[i])}</strong></div>`;
+    }
+    solveHtml += '</div>';
+    s = stepLog.addStep('Шаг 4 · Решение системы (LAPACKE_dgesv)',
+      `Решаем (XᵀX)β = Xᵀy — систему ${p} уравнений с ${p} неизвестными:`, solveHtml, blasCmd);
     await stepLog.showStep(s);
 
     /* ── Predictions, residuals, R² ── */
@@ -174,6 +192,23 @@ export default {
     const RMSE = Math.sqrt(ssRes / N);
     const MAE = residuals.reduce((a, v) => a + Math.abs(v), 0) / N;
 
+    /* ── Step 5: Predictions table ── */
+    const predCols = Array.from({ length: m }, (_, j) => ({ name: `x${j + 1}`, group: 'x' }))
+      .concat({ name: 'y', group: 'y' }, { name: 'ŷ', group: 'y' }, { name: 'остаток', group: 'y' });
+    const predRows = [];
+    for (let i = 0; i < N; i++) {
+      const vals = points[i].xs.map(v => fmtNum(v));
+      vals.push(fmtNum(y[i]), fmtNum(yPred[i]));
+      const ri = residuals[i];
+      const rColor = Math.abs(ri) < 1e-10 ? 'var(--teal)' : '';
+      vals.push(`<span${rColor ? ` style="color:${rColor}"` : ''}>${fmtNum(ri)}</span>`);
+      predRows.push({ values: vals, yStart: m });
+    }
+    s = stepLog.addStep('Шаг 5 · Прогнозы и остатки',
+      `Подставляем найденные β в модель для каждого наблюдения:`,
+      buildRegTable(predCols, predRows));
+    await stepLog.showStep(s);
+
     /* ── Verification via BLAS dgemv ── */
     const flatX = [];
     for (let i = 0; i < N; i++)
@@ -190,23 +225,39 @@ export default {
       verifyNorm = Math.sqrt(verifyNorm);
     }
 
-    /* Build model equation string */
+    /* ── Step 6: Final result ── */
     let eqStr = fmtNum(beta[0]);
     for (let i = 1; i < p; i++) {
       eqStr += ` ${beta[i] >= 0 ? '+' : '−'} ${fmtNum(Math.abs(beta[i]))}·${featureNames[i]}`;
     }
 
-    let solHtml = '<div class="solution"><h3>Модель:</h3>';
-    solHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;margin:0.5rem 0;word-break:break-all">y = ${eqStr}</div>`;
-    solHtml += '</div>';
-    solHtml += `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">R² = ${R2.toFixed(6)}, R²_adj = ${adjR2.toFixed(6)}, RMSE = ${RMSE.toFixed(6)}, MAE = ${MAE.toFixed(6)}</div>`;
+    let resultHtml = '<div class="solution">';
+    resultHtml += '<div style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">Уравнение регрессии</div>';
+    resultHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;color:var(--text-heading);margin-bottom:0.75rem;line-height:1.6;word-break:break-all">y = ${eqStr}</div>`;
+
+    resultHtml += '<div class="sol-vec" style="margin-bottom:0.75rem">';
+    for (let i = 0; i < p; i++) {
+      resultHtml += `<div class="sol-item">${coefNames[i]} = <strong>${fmtNum(beta[i])}</strong></div>`;
+    }
+    resultHtml += '</div>';
+
+    resultHtml += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem">';
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">R² = </span><strong style="color:var(--teal);font-family:'JetBrains Mono',monospace">${R2.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">R²_adj = </span><strong style="font-family:'JetBrains Mono',monospace">${adjR2.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">RMSE = </span><strong style="font-family:'JetBrains Mono',monospace">${RMSE.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">MAE = </span><strong style="font-family:'JetBrains Mono',monospace">${MAE.toFixed(6)}</strong></div>`;
+    resultHtml += '</div>';
+
+    const r2pct = (R2 * 100).toFixed(2);
+    resultHtml += `<div style="font-size:0.88rem;color:var(--text-muted);line-height:1.5">Модель объясняет <strong style="color:var(--text-heading)">${r2pct}%</strong> дисперсии целевой переменной.</div>`;
 
     if (xBeta) {
       const ok = verifyNorm < 1e-3;
-      solHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}">Проверка ‖Xβ − y‖ = ${fmtNum(verifyNorm)} через dgemv — ${ok ? 'совпадает' : 'расхождение'}</div>`;
+      resultHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}" style="margin-top:0.5rem">Проверка ‖Xβ − y‖ = ${fmtNum(verifyNorm)} через dgemv — ${ok ? 'совпадает ✓' : 'расхождение ✗'}</div>`;
     }
 
-    s = stepLog.addStep('Результат', null, solHtml, gemvCmd);
+    resultHtml += '</div>';
+    s = stepLog.addStep('Результат', null, resultHtml, gemvCmd);
     await stepLog.showStep(s);
 
     /* ── Return chart data ── */

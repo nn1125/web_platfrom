@@ -1,4 +1,4 @@
-import { fmtNum, parseVec } from '../../../utils/solverUtils';
+import { fmtNum, parseVec, parseMat, buildRegTable } from '../../../utils/solverUtils';
 
 /* ── RBF kernel functions ── */
 const kernels = {
@@ -32,19 +32,11 @@ export default {
   exampleFeatures: 1,
   minPoints: () => 2,
   exampleData: [
-    { xs: [0.0], y: 0.0 },
-    { xs: [0.5], y: 0.48 },
-    { xs: [1.0], y: 0.84 },
-    { xs: [1.5], y: 1.0 },
-    { xs: [2.0], y: 0.91 },
-    { xs: [2.5], y: 0.6 },
-    { xs: [3.0], y: 0.14 },
-    { xs: [3.5], y: -0.35 },
-    { xs: [4.0], y: -0.76 },
-    { xs: [4.5], y: -0.98 },
-    { xs: [5.0], y: -0.96 },
-    { xs: [5.5], y: -0.71 },
-    { xs: [6.0], y: -0.28 },
+    { xs: [0], y: 0 },
+    { xs: [1], y: 1 },
+    { xs: [2], y: 0 },
+    { xs: [3], y: -1 },
+    { xs: [4], y: 0 },
   ],
   extraParams: [
     {
@@ -67,6 +59,8 @@ export default {
     const kernelName = extra.kernel || 'gaussian';
     const eps = parseFloat(extra.epsilon) || 1;
     const phi = kernels[kernelName] || kernels.gaussian;
+    const kernelLabel = kernelLabels[kernelName] || kernelName;
+    const kernelShort = kernelLabel.split(':')[0];
 
     /* ── Build interpolation matrix Φ (N × N) ── */
     const Phi = [];
@@ -83,29 +77,34 @@ export default {
     /* ── Step log ── */
     stepLog.show();
 
-    let s = stepLog.addStep('Исходные данные',
-      `Число точек: ${N}<br>Число признаков: ${m}<br>` +
-      `Ядро: ${kernelLabels[kernelName] || kernelName}<br>` +
-      `ε = ${fmtNum(eps)}<br><br>` +
-      `Задача: найти w из Φ·w = y, где Φ<sub>ij</sub> = φ(‖x<sub>i</sub> − x<sub>j</sub>‖)`);
+    /* ── Step 1: Input data ── */
+    const dataCols = Array.from({ length: m }, (_, j) => ({ name: `x${j + 1}`, group: 'x' })).concat({ name: 'y', group: 'y' });
+    const dataRows = points.map(pt => ({
+      values: pt.xs.map(v => fmtNum(v)).concat(fmtNum(pt.y)),
+      yStart: m,
+    }));
+    let s = stepLog.addStep('Шаг 1 · Исходные данные',
+      `Точек: <strong>${N}</strong>, признаков: <strong>${m}</strong><br>` +
+      `Ядро: <strong>${kernelLabel}</strong>, ε = <strong>${fmtNum(eps)}</strong><br>` +
+      `Ищем: <strong>f(x) = Σ wᵢ · φ(‖x − xᵢ‖)</strong>`,
+      buildRegTable(dataCols, dataRows));
     await stepLog.showStep(s);
 
-    /* Show Φ matrix (if small enough) */
+    /* ── Step 2: Φ matrix ── */
     if (N <= 10) {
-      let matHtml = '<table class="aug-matrix"><tbody>';
-      for (let i = 0; i < N; i++) {
-        matHtml += '<tr>';
-        for (let j = 0; j < N; j++) matHtml += `<td>${fmtNum(Phi[i][j])}</td>`;
-        matHtml += `<td class="aug-sep">${fmtNum(y[i])}</td>`;
-        matHtml += '</tr>';
-      }
-      matHtml += '</tbody></table>';
-      s = stepLog.addStep('Матрица интерполяции Φ',
-        `Размер: ${N} × ${N}`, matHtml);
+      const phiCols = Array.from({ length: N }, (_, j) => ({ name: `φ(·,x${j + 1})`, group: 'x' })).concat({ name: 'y', group: 'y' });
+      const phiRows = Phi.map((row, i) => ({
+        values: row.map(v => fmtNum(v)).concat(fmtNum(y[i])),
+        yStart: N,
+      }));
+      let phiHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Φᵢⱼ = φ(‖xᵢ − xⱼ‖) — расстояние между точками, пропущенное через ядро:</div>';
+      phiHtml += buildRegTable(phiCols, phiRows);
+      s = stepLog.addStep('Шаг 2 · Матрица интерполяции Φ',
+        `Размер Φ: ${N} × ${N} (каждая точка «видит» все остальные через ядро)`, phiHtml);
       await stepLog.showStep(s);
     }
 
-    /* ── Solve Φ·w = y via BLAS dgesv ── */
+    /* ── Step 3: Solve Φ·w = y via BLAS dgesv ── */
     const flatPhi = [];
     for (let i = 0; i < N; i++)
       for (let j = 0; j < N; j++)
@@ -113,7 +112,8 @@ export default {
 
     const blasCmd = `dgesv ${N} 1 ${flatPhi.join(' ')} ${y.map(fmtNum).join(' ')}`;
     const blasOut = runBlas(blasCmd);
-    const w = parseVec(blasOut);
+    const wMat = parseMat(blasOut);
+    const w = wMat.length > 0 ? wMat.flat() : null;
 
     if (!w) {
       s = stepLog.addStep('Ошибка',
@@ -122,8 +122,15 @@ export default {
       return null;
     }
 
-    s = stepLog.addStep('Решение через LAPACKE_dgesv',
-      `Веса w = [${w.map(fmtNum).join(', ')}]`, null, blasCmd);
+    const wNames = Array.from({ length: N }, (_, i) => `w${i + 1} (при x${i + 1})`);
+    let solveHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Решаем систему Φ·w = y и получаем веса:</div>';
+    solveHtml += '<div class="sol-vec">';
+    for (let i = 0; i < N; i++) {
+      solveHtml += `<div class="sol-item">${wNames[i]} = <strong>${fmtNum(w[i])}</strong></div>`;
+    }
+    solveHtml += '</div>';
+    s = stepLog.addStep('Шаг 3 · Решение системы (LAPACKE_dgesv)',
+      `Решаем Φ·w = y — систему ${N} уравнений с ${N} неизвестными:`, solveHtml, blasCmd);
     await stepLog.showStep(s);
 
     /* ── Evaluate interpolant at data points (verify) ── */
@@ -146,6 +153,23 @@ export default {
 
     const maxResidual = Math.max(...residuals.map(Math.abs));
 
+    /* ── Step 4: Predictions table ── */
+    const predCols = Array.from({ length: m }, (_, j) => ({ name: `x${j + 1}`, group: 'x' }))
+      .concat({ name: 'y', group: 'y' }, { name: 'f(x)', group: 'y' }, { name: 'остаток', group: 'y' });
+    const predRows = [];
+    for (let i = 0; i < N; i++) {
+      const vals = points[i].xs.map(v => fmtNum(v));
+      vals.push(fmtNum(y[i]), fmtNum(yPred[i]));
+      const ri = residuals[i];
+      const rColor = Math.abs(ri) < 1e-10 ? 'var(--teal)' : '';
+      vals.push(`<span${rColor ? ` style="color:${rColor}"` : ''}>${fmtNum(ri)}</span>`);
+      predRows.push({ values: vals, yStart: m });
+    }
+    s = stepLog.addStep('Шаг 4 · Проверка интерполяции',
+      `Подставляем найденные w обратно — остатки должны быть ≈ 0 (точная интерполяция):`,
+      buildRegTable(predCols, predRows));
+    await stepLog.showStep(s);
+
     /* ── Verification via BLAS dgemv ── */
     const flatPhiOrig = [];
     for (let i = 0; i < N; i++)
@@ -164,25 +188,34 @@ export default {
       verifyNorm = Math.sqrt(verifyNorm);
     }
 
-    /* Result */
-    let solHtml = '<div class="solution"><h3>RBF интерполянт:</h3>';
-    solHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;margin:0.5rem 0">`;
-    solHtml += `f(x) = Σ w<sub>i</sub> · ${kernelLabels[kernelName] ? kernelLabels[kernelName].split(':')[0] : kernelName}(‖x − x<sub>i</sub>‖)`;
-    solHtml += '</div></div>';
+    /* ── Step 5: Final result ── */
+    let resultHtml = '<div class="solution">';
 
-    solHtml += '<div class="sol-vec" style="margin-top:0.75rem">';
-    for (let i = 0; i < N; i++)
-      solHtml += `<div class="sol-item">w<sub>${i + 1}</sub> = <strong>${fmtNum(w[i])}</strong></div>`;
-    solHtml += '</div>';
+    resultHtml += '<div style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">RBF интерполянт</div>';
+    resultHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;color:var(--text-heading);margin-bottom:0.75rem;line-height:1.6">f(x) = Σ wᵢ · ${kernelShort}(‖x − xᵢ‖)</div>`;
 
-    solHtml += `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">Макс. |остаток| = ${maxResidual.toExponential(2)} (интерполяция: должен быть ≈ 0)</div>`;
+    resultHtml += '<div class="sol-vec" style="margin-bottom:0.75rem">';
+    for (let i = 0; i < N; i++) {
+      resultHtml += `<div class="sol-item">${wNames[i]} = <strong>${fmtNum(w[i])}</strong></div>`;
+    }
+    resultHtml += '</div>';
+
+    resultHtml += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem">';
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">Макс |остаток| = </span><strong style="color:var(--teal);font-family:'JetBrains Mono',monospace">${maxResidual.toExponential(2)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">‖Φw−y‖ = </span><strong style="font-family:'JetBrains Mono',monospace">${(verifyNorm || 0).toExponential(2)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">Ядро: </span><strong>${kernelShort}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">ε = </span><strong style="font-family:'JetBrains Mono',monospace">${fmtNum(eps)}</strong></div>`;
+    resultHtml += '</div>';
+
+    resultHtml += `<div style="font-size:0.88rem;color:var(--text-muted);line-height:1.5">Интерполяция проходит <strong style="color:var(--text-heading)">точно через все ${N} точек</strong> данных.</div>`;
 
     if (phiW) {
       const ok = verifyNorm < 1e-6;
-      solHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}">Проверка ‖Φw − y‖ = ${verifyNorm.toExponential(2)} через dgemv — ${ok ? 'точная интерполяция' : 'есть погрешность'}</div>`;
+      resultHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}" style="margin-top:0.5rem">Проверка ‖Φw − y‖ = ${verifyNorm.toExponential(2)} через dgemv — ${ok ? 'точная интерполяция ✓' : 'есть погрешность ✗'}</div>`;
     }
 
-    s = stepLog.addStep('Результат', null, solHtml, gemvCmd);
+    resultHtml += '</div>';
+    s = stepLog.addStep('Результат', null, resultHtml, gemvCmd);
     await stepLog.showStep(s);
 
     /* ── Chart data ── */

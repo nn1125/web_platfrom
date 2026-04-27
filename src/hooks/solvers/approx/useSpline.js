@@ -1,4 +1,4 @@
-import { fmtNum, parseVec } from '../../../utils/solverUtils';
+import { fmtNum, parseVec, parseMat, buildRegTable } from '../../../utils/solverUtils';
 
 /* ═══════════════════════════════════════════════════════
    1D: Natural Cubic Spline
@@ -29,19 +29,11 @@ export default {
   exampleFeatures: 1,
   minPoints: () => 3,
   exampleData: [
-    { xs: [0.0], y: 0.0 },
-    { xs: [0.5], y: 0.52 },
-    { xs: [1.0], y: 0.86 },
-    { xs: [1.5], y: 1.0 },
-    { xs: [2.0], y: 0.87 },
-    { xs: [2.5], y: 0.51 },
-    { xs: [3.0], y: 0.0 },
-    { xs: [3.5], y: -0.53 },
-    { xs: [4.0], y: -0.86 },
-    { xs: [4.5], y: -1.0 },
-    { xs: [5.0], y: -0.87 },
-    { xs: [5.5], y: -0.52 },
-    { xs: [6.0], y: 0.0 },
+    { xs: [0], y: 0 },
+    { xs: [1], y: 2 },
+    { xs: [2], y: 1 },
+    { xs: [3], y: 3 },
+    { xs: [4], y: 0 },
   ],
   extraParams: [
     { key: 'lambda', label: 'λ (сглаживание) =', defaultValue: '0', width: '70px' },
@@ -77,10 +69,8 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
   const y = sorted.map(p => p.y);
 
   /* Smoothing: if λ > 0, first smooth y values with a penalized system */
-  let ys = [...y]; // values to interpolate
+  let ys = [...y];
   if (lambda > 0 && N > 2) {
-    /* Penalized least squares: min Σ(yᵢ - fᵢ)² + λ·Σ(Δ²fᵢ)²
-       Solve (I + λ·DᵀD)f = y where D is second difference matrix */
     const sz = N;
     const A = Array.from({ length: sz }, () => new Array(sz).fill(0));
     for (let i = 0; i < sz; i++) A[i][i] = 1;
@@ -103,24 +93,18 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
         flatA.push(fmtNum(A[i][j]));
     const smCmd = `dgesv ${sz} 1 ${flatA.join(' ')} ${y.map(fmtNum).join(' ')}`;
     const smOut = runBlas(smCmd);
-    const smY = parseVec(smOut);
+    const smYMat = parseMat(smOut);
+    const smY = smYMat.length > 0 ? smYMat.flat() : null;
     if (smY) ys = smY;
   }
 
-  const n = N - 1; // number of intervals
+  const n = N - 1;
   const h = [];
   for (let i = 0; i < n; i++) h.push(x[i + 1] - x[i]);
 
-  /* ── Build tridiagonal system for M (second derivatives) ── */
-  /* Natural: M[0] = M[n] = 0
-     System size: (n-1) for interior points M[1]..M[n-1]
-     h[i-1]·M[i-1] + 2(h[i-1]+h[i])·M[i] + h[i]·M[i+1] = 6·((ys[i+1]-ys[i])/h[i] - (ys[i]-ys[i-1])/h[i-1]) */
-
-  const sysSize = bc === 'clamped' ? N : Math.max(n - 1, 1);
   const M = new Array(N).fill(0);
 
   if (n >= 2) {
-    /* Build full matrix for BLAS solve (tridiagonal but stored dense) */
     const matSize = n - 1;
     const AA = Array.from({ length: matSize }, () => new Array(matSize).fill(0));
     const rhs = new Array(matSize);
@@ -135,34 +119,34 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
 
     stepLog.show();
 
-    /* Show tridiagonal system */
+    /* ── Step 1: Input data ── */
+    const dataCols = [{ name: 'x', group: 'x' }, { name: 'y', group: 'y' }];
+    const dataRows = sorted.map(pt => ({
+      values: [fmtNum(pt.xs[0]), fmtNum(pt.y)],
+      yStart: 1,
+    }));
+    let s = stepLog.addStep('Шаг 1 · Исходные данные',
+      `Точек: <strong>${N}</strong>, интервалов: <strong>${n}</strong><br>` +
+      `ГУ: <strong>${bc === 'clamped' ? 'зажатые' : 'естественные'}</strong> (M₀ = M_n = 0)<br>` +
+      (lambda > 0 ? `λ (сглаживание) = <strong>${fmtNum(lambda)}</strong>` : '<strong>Интерполяция</strong> (λ = 0)'),
+      buildRegTable(dataCols, dataRows));
+    await stepLog.showStep(s);
+
+    /* ── Step 2: Tridiagonal system ── */
     if (matSize <= 10) {
-      let matHtml = '<table class="aug-matrix"><tbody>';
-      for (let i = 0; i < matSize; i++) {
-        matHtml += '<tr>';
-        for (let j = 0; j < matSize; j++) {
-          const cls = i === j ? 'cell-pivot' : (Math.abs(i - j) === 1 ? 'cell-elim' : '');
-          matHtml += `<td class="${cls}">${fmtNum(AA[i][j])}</td>`;
-        }
-        matHtml += `<td class="aug-sep">${fmtNum(rhs[i])}</td>`;
-        matHtml += '</tr>';
-      }
-      matHtml += '</tbody></table>';
-
-      let s = stepLog.addStep('Исходные данные',
-        `Число точек: ${N}<br>Число интервалов: ${n}<br>` +
-        `ГУ: ${bc === 'clamped' ? 'зажатые (M₀=M_n=0, f\'=0)' : 'естественные (M₀=M_n=0)'}<br>` +
-        (lambda > 0 ? `λ (сглаживание) = ${fmtNum(lambda)}` : 'Интерполяция (λ = 0)'));
-      await stepLog.showStep(s);
-
-      s = stepLog.addStep('Трёхдиагональная система для M',
-        `Неизвестные: M₁, ..., M<sub>${n - 1}</sub> (вторые производные в узлах)<br>` +
-        `Размер: ${matSize} × ${matSize}`,
-        matHtml);
+      const mCols = Array.from({ length: matSize }, (_, j) => ({ name: `M${j + 1}`, group: 'x' })).concat({ name: 'b', group: 'y' });
+      const mRows = AA.map((row, i) => ({
+        values: row.map(v => fmtNum(v)).concat(fmtNum(rhs[i])),
+        yStart: matSize,
+      }));
+      let sysHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Ищем M₁…M' + (n - 1) + ' — вторые производные в узлах:</div>';
+      sysHtml += buildRegTable(mCols, mRows);
+      s = stepLog.addStep('Шаг 2 · Трёхдиагональная система',
+        `Размер: ${matSize} × ${matSize} (неизвестные M₁…M${n - 1})`, sysHtml);
       await stepLog.showStep(s);
     }
 
-    /* Solve via BLAS */
+    /* ── Step 3: Solve ── */
     const flatAA = [];
     for (let i = 0; i < matSize; i++)
       for (let j = 0; j < matSize; j++)
@@ -170,21 +154,28 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
 
     const blasCmd = `dgesv ${matSize} 1 ${flatAA.join(' ')} ${rhs.map(fmtNum).join(' ')}`;
     const blasOut = runBlas(blasCmd);
-    const mSol = parseVec(blasOut);
+    const mSolMat = parseMat(blasOut);
+    const mSol = mSolMat.length > 0 ? mSolMat.flat() : null;
 
     if (!mSol) {
-      const s = stepLog.addStep('Ошибка', 'Не удалось решить трёхдиагональную систему', null, blasCmd);
-      await stepLog.showStep(s);
+      const s2 = stepLog.addStep('Ошибка', 'Не удалось решить трёхдиагональную систему', null, blasCmd);
+      await stepLog.showStep(s2);
       return null;
     }
 
     for (let i = 0; i < matSize; i++) M[i + 1] = mSol[i];
 
-    let s = stepLog.addStep('Вторые производные M',
-      `M = [${M.map(fmtNum).join(', ')}]`, null, blasCmd);
+    let solveHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Вторые производные в узлах:</div>';
+    solveHtml += '<div class="sol-vec">';
+    for (let i = 0; i < N; i++) {
+      solveHtml += `<div class="sol-item">M${i} = <strong>${fmtNum(M[i])}</strong></div>`;
+    }
+    solveHtml += '</div>';
+    s = stepLog.addStep('Шаг 3 · Решение системы (LAPACKE_dgesv)',
+      `Решаем трёхдиагональную систему ${matSize} уравнений:`, solveHtml, blasCmd);
     await stepLog.showStep(s);
 
-    /* ── Compute spline coefficients for each interval ── */
+    /* ── Compute spline coefficients ── */
     const coeffs = [];
     for (let i = 0; i < n; i++) {
       const ai = ys[i];
@@ -194,26 +185,20 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
       coeffs.push({ a: ai, b: bi, c: ci, d: di });
     }
 
-    /* Show coefficients */
+    /* ── Step 4: Coefficients table ── */
     if (n <= 15) {
-      let coefHtml = '<table class="aug-matrix"><thead><tr>' +
-        '<td style="font-weight:600;color:var(--text-muted)">i</td>' +
-        '<td style="font-weight:600;color:var(--text-muted)">a</td>' +
-        '<td style="font-weight:600;color:var(--text-muted)">b</td>' +
-        '<td style="font-weight:600;color:var(--text-muted)">c</td>' +
-        '<td style="font-weight:600;color:var(--text-muted)">d</td>' +
-        '</tr></thead><tbody>';
-      for (let i = 0; i < n; i++) {
-        coefHtml += `<tr><td class="cell-pivot">${i + 1}</td>` +
-          `<td>${fmtNum(coeffs[i].a)}</td>` +
-          `<td>${fmtNum(coeffs[i].b)}</td>` +
-          `<td>${fmtNum(coeffs[i].c)}</td>` +
-          `<td>${fmtNum(coeffs[i].d)}</td></tr>`;
-      }
-      coefHtml += '</tbody></table>';
-      s = stepLog.addStep('Коэффициенты сплайна',
-        `S<sub>i</sub>(x) = a<sub>i</sub> + b<sub>i</sub>(x−x<sub>i</sub>) + c<sub>i</sub>(x−x<sub>i</sub>)² + d<sub>i</sub>(x−x<sub>i</sub>)³`,
-        coefHtml);
+      const coefCols = [
+        { name: '[xᵢ, xᵢ₊₁]', group: 'x' },
+        { name: 'aᵢ', group: 'y' }, { name: 'bᵢ', group: 'y' },
+        { name: 'cᵢ', group: 'y' }, { name: 'dᵢ', group: 'y' },
+      ];
+      const coefRows = coeffs.map((c, i) => ({
+        values: [`[${fmtNum(x[i])}, ${fmtNum(x[i + 1])}]`, fmtNum(c.a), fmtNum(c.b), fmtNum(c.c), fmtNum(c.d)],
+        yStart: 1,
+      }));
+      s = stepLog.addStep('Шаг 4 · Коэффициенты сплайна',
+        `Sᵢ(x) = aᵢ + bᵢ(x−xᵢ) + cᵢ(x−xᵢ)² + dᵢ(x−xᵢ)³`,
+        buildRegTable(coefCols, coefRows));
       await stepLog.showStep(s);
     }
 
@@ -245,24 +230,44 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
     const maxRes = Math.max(...residuals.map(Math.abs));
     const R2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
 
-    /* Result */
-    let solHtml = '<div class="solution"><h3>Кубический сплайн:</h3>';
-    solHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;margin:0.5rem 0">`;
-    solHtml += `${n} интервалов, ${N} узлов`;
-    solHtml += '</div></div>';
-    solHtml += `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">`;
-    solHtml += `Макс |остаток| = ${maxRes.toExponential(2)}, R² = ${R2.toFixed(6)}`;
-    solHtml += '</div>';
-
-    const isInterp = lambda === 0 || lambda === '';
-    solHtml += `<div class="verify ${isInterp && maxRes < 1e-6 ? 'verify--ok' : 'verify--ok'}">` +
-      `${isInterp ? 'Интерполяция: сплайн проходит через все точки' : `Сглаживающий сплайн (λ = ${fmtNum(lambda)})`}` +
-      `</div>`;
-
-    s = stepLog.addStep('Результат', null, solHtml);
+    /* ── Step 5: Predictions ── */
+    const predCols = [{ name: 'x', group: 'x' }, { name: 'y', group: 'y' }, { name: 'S(x)', group: 'y' }, { name: 'остаток', group: 'y' }];
+    const predRows = [];
+    for (let i = 0; i < N; i++) {
+      const ri = residuals[i];
+      const rColor = Math.abs(ri) < 1e-10 ? 'var(--teal)' : '';
+      predRows.push({
+        values: [fmtNum(x[i]), fmtNum(y[i]), fmtNum(yPred[i]),
+          `<span${rColor ? ` style="color:${rColor}"` : ''}>${fmtNum(ri)}</span>`],
+        yStart: 1,
+      });
+    }
+    s = stepLog.addStep('Шаг 5 · Проверка интерполяции',
+      `Подставляем узлы в сплайн — остатки должны быть ≈ 0:`,
+      buildRegTable(predCols, predRows));
     await stepLog.showStep(s);
 
-    /* ── Chart: scatter + spline curve ── */
+    /* ── Step 6: Result ── */
+    const isInterp = lambda === 0;
+    let resultHtml = '<div class="solution">';
+    resultHtml += '<div style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">Кубический сплайн</div>';
+    resultHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;color:var(--text-heading);margin-bottom:0.75rem;line-height:1.6">${n} интервалов, ${N} узлов</div>`;
+
+    resultHtml += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem">';
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">R² = </span><strong style="color:var(--teal);font-family:'JetBrains Mono',monospace">${R2.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">Макс |остаток| = </span><strong style="font-family:'JetBrains Mono',monospace">${maxRes.toExponential(2)}</strong></div>`;
+    resultHtml += '</div>';
+
+    resultHtml += `<div style="font-size:0.88rem;color:var(--text-muted);line-height:1.5">${isInterp
+      ? 'Сплайн проходит <strong style="color:var(--text-heading)">точно через все точки</strong>.'
+      : `Сглаживающий сплайн (λ = <strong style="color:var(--text-heading)">${fmtNum(lambda)}</strong>).`}</div>`;
+    resultHtml += `<div class="verify verify--ok" style="margin-top:0.5rem">${isInterp ? 'Точная интерполяция ✓' : 'Сглаживание выполнено ✓'}</div>`;
+    resultHtml += '</div>';
+
+    s = stepLog.addStep('Результат', null, resultHtml);
+    await stepLog.showStep(s);
+
+    /* ── Chart ── */
     const xMin = x[0];
     const xMax = x[n];
     const margin = (xMax - xMin) * 0.03;
@@ -283,15 +288,11 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
       },
       predVsActual: { actual: y, predicted: yPred },
       residuals: { indices: Array.from({ length: N }, (_, i) => i + 1), values: residuals },
-      metrics: {
-        'Интервалов': n,
-        'Макс |ост.|': maxRes,
-        'R²': R2,
-      },
+      metrics: { 'Интервалов': n, 'Макс |ост.|': maxRes, 'R²': R2 },
     };
   }
 
-  /* Edge case: n < 2 (linear interpolation) */
+  /* Edge case: n < 2 */
   stepLog.show();
   const s = stepLog.addStep('Замечание', 'Для кубического сплайна нужно минимум 3 точки. Используется линейная интерполяция.');
   await stepLog.showStep(s);
@@ -362,40 +363,59 @@ async function solveMultiD(points, m, lambda, runBlas, stepLog) {
 
   stepLog.show();
 
-  let s = stepLog.addStep('Исходные данные',
-    `Число точек: ${N}<br>Измерения: ${m}<br>` +
-    `λ (сглаживание) = ${fmtNum(lambda)}<br><br>` +
+  /* ── Step 1: Input data ── */
+  const dataCols = Array.from({ length: m }, (_, i) => ({ name: `x${i + 1}`, group: 'x' })).concat({ name: 'y', group: 'y' });
+  const dataRows = points.map(pt => ({
+    values: pt.xs.map(v => fmtNum(v)).concat(fmtNum(pt.y)),
+    yStart: m,
+  }));
+  let s = stepLog.addStep('Шаг 1 · Исходные данные',
+    `Точек: <strong>${N}</strong>, признаков: <strong>${m}</strong><br>` +
+    `λ (сглаживание) = <strong>${fmtNum(lambda)}</strong><br>` +
     `<b>Модель:</b> f(x) = Σ w<sub>i</sub>·φ(‖x−x<sub>i</sub>‖) + a₀ + ${
       Array.from({ length: m }, (_, i) => `a${i + 1}·x${i + 1}`).join(' + ')
     }<br>` +
-    `Ядро φ: тонкопластинчатое (r²·ln r)`);
+    `Ядро φ: тонкопластинчатое (r²·ln r)`,
+    buildRegTable(dataCols, dataRows));
   await stepLog.showStep(s);
 
-  /* Show system (if small) */
-  if (totalSize <= 12) {
-    let matHtml = '<table class="aug-matrix"><tbody>';
-    for (let i = 0; i < totalSize; i++) {
-      matHtml += '<tr>';
-      for (let j = 0; j < totalSize; j++) {
-        let cls = '';
-        if (i < N && j < N) cls = i === j ? 'cell-pivot' : '';
-        else if ((i >= N) !== (j >= N)) cls = 'cell-elim';
-        matHtml += `<td class="${cls}">${fmtNum(S[i][j])}</td>`;
-      }
-      matHtml += `<td class="aug-sep">${fmtNum(rhs[i])}</td>`;
-      matHtml += '</tr>';
-    }
-    matHtml += '</tbody></table>';
-
-    s = stepLog.addStep('Расширенная система',
-      `Размер: ${totalSize} × ${totalSize}<br>` +
-      `Верхний левый блок: Φ + λI (${N}×${N})<br>` +
-      `Правый/нижний блок: P / Pᵀ (полиномиальная часть)`,
-      matHtml);
+  /* ── Step 2: Φ kernel matrix ── */
+  if (N <= 10) {
+    const phiCols = Array.from({ length: N }, (_, j) => ({ name: `φ(·,x${j + 1})`, group: 'x' }));
+    const phiRows = Phi.map((row) => ({
+      values: row.map(v => fmtNum(v)),
+      yStart: N,
+    }));
+    let phiHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">φ(r) = r²·ln(r), значения Φᵢⱼ = φ(‖xᵢ − xⱼ‖):</div>';
+    phiHtml += buildRegTable(phiCols, phiRows);
+    s = stepLog.addStep('Шаг 2 · Матрица ядра Φ',
+      `Размер: ${N} × ${N}`, phiHtml);
     await stepLog.showStep(s);
   }
 
-  /* ── Solve via BLAS dgesv ── */
+  /* ── Step 3: Augmented system ── */
+  if (totalSize <= 12) {
+    const sysCols = [
+      ...Array.from({ length: N }, (_, j) => ({ name: `w${j + 1}`, group: 'x' })),
+      ...Array.from({ length: p }, (_, j) => ({ name: j === 0 ? 'a₀' : `a${j}`, group: 'x' })),
+      { name: 'b', group: 'y' },
+    ];
+    const sysRows = [];
+    for (let i = 0; i < totalSize; i++) {
+      sysRows.push({
+        values: S[i].map(v => fmtNum(v)).concat(fmtNum(rhs[i])),
+        yStart: totalSize,
+      });
+    }
+    let sysHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">[Φ + λI, P; Pᵀ, 0] · [w; a] = [y; 0]</div>';
+    sysHtml += buildRegTable(sysCols, sysRows);
+    s = stepLog.addStep('Шаг 3 · Расширенная система',
+      `Размер: ${totalSize} × ${totalSize} (${N} весов + ${p} полиномиальных коэффициентов)`,
+      sysHtml);
+    await stepLog.showStep(s);
+  }
+
+  /* ── Step 4: Solve via BLAS dgesv ── */
   const flatS = [];
   for (let i = 0; i < totalSize; i++)
     for (let j = 0; j < totalSize; j++)
@@ -403,7 +423,8 @@ async function solveMultiD(points, m, lambda, runBlas, stepLog) {
 
   const blasCmd = `dgesv ${totalSize} 1 ${flatS.join(' ')} ${rhs.map(fmtNum).join(' ')}`;
   const blasOut = runBlas(blasCmd);
-  const sol = parseVec(blasOut);
+  const solMat = parseMat(blasOut);
+  const sol = solMat.length > 0 ? solMat.flat() : null;
 
   if (!sol) {
     s = stepLog.addStep('Ошибка',
@@ -415,12 +436,21 @@ async function solveMultiD(points, m, lambda, runBlas, stepLog) {
   const w = sol.slice(0, N);
   const a = sol.slice(N, N + p);
 
-  s = stepLog.addStep('Решение через LAPACKE_dgesv',
-    `<b>Веса w</b> (${N} штук): [${w.map(fmtNum).join(', ')}]<br><br>` +
-    `<b>Полиномиальная часть:</b><br>` +
-    `a₀ = ${fmtNum(a[0])}` +
-    a.slice(1).map((v, i) => `<br>a${i + 1} = ${fmtNum(v)}`).join(''),
-    null, blasCmd);
+  let solveHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Найденные параметры:</div>';
+  solveHtml += '<div class="sol-vec">';
+  for (let i = 0; i < N; i++) {
+    solveHtml += `<div class="sol-item">w${i + 1} = <strong>${fmtNum(w[i])}</strong></div>`;
+  }
+  solveHtml += '</div>';
+  solveHtml += '<div class="sol-vec" style="margin-top:0.5rem">';
+  solveHtml += `<div class="sol-item">a₀ (свободный) = <strong>${fmtNum(a[0])}</strong></div>`;
+  for (let i = 1; i < p; i++) {
+    solveHtml += `<div class="sol-item">a${i} (x${i}) = <strong>${fmtNum(a[i])}</strong></div>`;
+  }
+  solveHtml += '</div>';
+
+  s = stepLog.addStep('Шаг 4 · Решение системы (LAPACKE_dgesv)',
+    `Решаем систему ${totalSize} уравнений:`, solveHtml, blasCmd);
   await stepLog.showStep(s);
 
   /* ── Evaluate at data points ── */
@@ -451,18 +481,48 @@ async function solveMultiD(points, m, lambda, runBlas, stepLog) {
   const RMSE = Math.sqrt(ssRes / N);
   const maxRes = Math.max(...residuals.map(Math.abs));
 
-  /* Result */
-  let solHtml = '<div class="solution"><h3>Тонкопластинчатый сплайн:</h3></div>';
-  solHtml += `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">`;
-  solHtml += `R² = ${R2.toFixed(6)}, RMSE = ${RMSE.toFixed(6)}, макс |остаток| = ${maxRes.toExponential(2)}`;
-  solHtml += '</div>';
+  /* ── Step 5: Predictions ── */
+  const predCols = [
+    ...Array.from({ length: m }, (_, i) => ({ name: `x${i + 1}`, group: 'x' })),
+    { name: 'y', group: 'y' }, { name: 'f(x)', group: 'y' }, { name: 'остаток', group: 'y' },
+  ];
+  const predRows = [];
+  for (let i = 0; i < N; i++) {
+    const ri = residuals[i];
+    const rColor = Math.abs(ri) < 1e-10 ? 'var(--teal)' : '';
+    predRows.push({
+      values: [
+        ...points[i].xs.map(v => fmtNum(v)),
+        fmtNum(y[i]), fmtNum(yPred[i]),
+        `<span${rColor ? ` style="color:${rColor}"` : ''}>${fmtNum(ri)}</span>`,
+      ],
+      yStart: m,
+    });
+  }
+  s = stepLog.addStep('Шаг 5 · Проверка на обучающих точках',
+    `Подставляем данные в модель:`,
+    buildRegTable(predCols, predRows));
+  await stepLog.showStep(s);
 
+  /* ── Step 6: Result ── */
   const isSmooth = lambda > 0;
-  solHtml += `<div class="verify verify--ok">${isSmooth
-    ? `Сглаживающий сплайн (λ = ${fmtNum(lambda)})`
-    : 'Интерполяционный сплайн (проходит через все точки)'}</div>`;
+  let resultHtml = '<div class="solution">';
+  resultHtml += '<div style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">Тонкопластинчатый сплайн</div>';
+  resultHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;color:var(--text-heading);margin-bottom:0.75rem;line-height:1.6">f(x) = Σ wᵢ·φ(‖x−xᵢ‖) + a₀ + ${Array.from({ length: m }, (_, i) => `a${i + 1}·x${i + 1}`).join(' + ')}</div>`;
 
-  s = stepLog.addStep('Результат', null, solHtml);
+  resultHtml += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem">';
+  resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">R² = </span><strong style="color:var(--teal);font-family:'JetBrains Mono',monospace">${R2.toFixed(6)}</strong></div>`;
+  resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">RMSE = </span><strong style="font-family:'JetBrains Mono',monospace">${RMSE.toFixed(6)}</strong></div>`;
+  resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">Макс |остаток| = </span><strong style="font-family:'JetBrains Mono',monospace">${maxRes.toExponential(2)}</strong></div>`;
+  resultHtml += '</div>';
+
+  resultHtml += `<div style="font-size:0.88rem;color:var(--text-muted);line-height:1.5">${isSmooth
+    ? `Сглаживающий сплайн (λ = <strong style="color:var(--text-heading)">${fmtNum(lambda)}</strong>).`
+    : 'Интерполяционный сплайн — <strong style="color:var(--text-heading)">проходит точно через все точки</strong>.'}</div>`;
+  resultHtml += `<div class="verify verify--ok" style="margin-top:0.5rem">${isSmooth ? 'Сглаживание выполнено ✓' : 'Точная интерполяция ✓'}</div>`;
+  resultHtml += '</div>';
+
+  s = stepLog.addStep('Результат', null, resultHtml);
   await stepLog.showStep(s);
 
   /* ── Charts ── */

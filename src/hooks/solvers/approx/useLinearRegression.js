@@ -1,4 +1,4 @@
-import { fmtNum, parseVec } from '../../../utils/solverUtils';
+import { fmtNum, parseVec, parseMat, buildRegTable } from '../../../utils/solverUtils';
 
 export default {
   title: 'Многомерная линейная регрессия',
@@ -6,16 +6,10 @@ export default {
   prefix: 'linreg',
   exampleFeatures: 1,
   exampleData: [
-    { xs: [1],  y: 2.1 },
-    { xs: [2],  y: 3.9 },
-    { xs: [3],  y: 6.2 },
-    { xs: [4],  y: 7.8 },
-    { xs: [5],  y: 10.1 },
-    { xs: [6],  y: 12.3 },
-    { xs: [7],  y: 13.9 },
-    { xs: [8],  y: 16.2 },
-    { xs: [9],  y: 18.0 },
-    { xs: [10], y: 20.1 },
+    { xs: [1], y: 3 },
+    { xs: [2], y: 5 },
+    { xs: [3], y: 7 },
+    { xs: [4], y: 9 },
   ],
 
   async solve({ data, runBlas, stepLog }) {
@@ -49,26 +43,43 @@ export default {
     /* ── Step log ── */
     stepLog.show();
 
-    let s = stepLog.addStep('Исходные данные',
-      `Число наблюдений: ${N}<br>Число признаков: ${m}<br>Модель: y = β₀ + ${
-        Array.from({ length: m }, (_, i) => `β${i + 1}·x${i + 1}`).join(' + ')
-      }`);
+    /* ── Step 1: Input data ── */
+    const featureList = Array.from({ length: m }, (_, i) => `β${i + 1}·x${i + 1}`).join(' + ');
+    const dataCols = Array.from({ length: m }, (_, j) => ({ name: `x${j + 1}`, group: 'x' })).concat({ name: 'y', group: 'y' });
+    const dataRows = points.map(pt => ({
+      values: pt.xs.map(v => fmtNum(v)).concat(fmtNum(pt.y)),
+      yStart: m,
+    }));
+    let dataHtml = buildRegTable(dataCols, dataRows);
+    let s = stepLog.addStep('Шаг 1 · Исходные данные',
+      `Наблюдений: <strong>${N}</strong>, признаков: <strong>${m}</strong><br>` +
+      `Ищем модель: <strong>y = β₀ + ${featureList}</strong>`, dataHtml);
     await stepLog.showStep(s);
 
-    /* Show XᵀX */
-    let matHtml = '<table class="aug-matrix"><tbody>';
-    for (let i = 0; i < p; i++) {
-      matHtml += '<tr>';
-      for (let j = 0; j < p; j++) matHtml += `<td>${fmtNum(XtX[i][j])}</td>`;
-      matHtml += `<td class="aug-sep">${fmtNum(Xty[i])}</td>`;
-      matHtml += '</tr>';
-    }
-    matHtml += '</tbody></table>';
-    s = stepLog.addStep('Нормальные уравнения (XᵀX)β = Xᵀy',
-      `Размер XᵀX: ${p} × ${p}`, matHtml);
+    /* ── Step 2: Design matrix ── */
+    const xColNames = ['1', ...Array.from({ length: m }, (_, j) => `x${j + 1}`)];
+    let xHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Добавляем столбец единиц для свободного члена β₀:</div>';
+    xHtml += buildRegTable(
+      xColNames.map(n => ({ name: n, group: 'x' })).concat({ name: 'y', group: 'y' }),
+      X.map((row, i) => ({ values: row.map(v => fmtNum(v)).concat(fmtNum(y[i])), yStart: p }))
+    );
+    s = stepLog.addStep('Шаг 2 · Матрица плана X',
+      `Размер X: ${N} × ${p} (${N} строк, ${p} столбцов — с единичным столбцом)`, xHtml);
     await stepLog.showStep(s);
 
-    /* ── Solve via BLAS dgesv ── */
+    /* ── Step 3: XᵀX and Xᵀy computation ── */
+    let xtxDetail = `Умножаем Xᵀ (${p}×${N}) на X (${N}×${p}), получаем XᵀX (${p}×${p}).<br>` +
+      `Умножаем Xᵀ (${p}×${N}) на y (${N}×1), получаем Xᵀy (${p}×1).`;
+    const xtxColNames = xColNames.map(n => ({ name: n, group: 'x' })).concat({ name: 'Xᵀy', group: 'y' });
+    let matHtml = '<div style="margin-bottom:0.3rem;font-size:0.85rem;color:var(--text-muted)">Расширенная матрица [XᵀX | Xᵀy]:</div>';
+    matHtml += buildRegTable(
+      xtxColNames,
+      XtX.map((row, i) => ({ values: row.map(v => fmtNum(v)).concat(fmtNum(Xty[i])), yStart: p }))
+    );
+    s = stepLog.addStep('Шаг 3 · Нормальные уравнения (XᵀX)β = Xᵀy', xtxDetail, matHtml);
+    await stepLog.showStep(s);
+
+    /* ── Step 4: Solve via BLAS dgesv ── */
     const flatXtX = [];
     for (let i = 0; i < p; i++)
       for (let j = 0; j < p; j++)
@@ -76,16 +87,24 @@ export default {
 
     const blasCmd = `dgesv ${p} 1 ${flatXtX.join(' ')} ${Xty.map(fmtNum).join(' ')}`;
     const blasOut = runBlas(blasCmd);
-    const beta = parseVec(blasOut);
+    const betaMat = parseMat(blasOut);
+    const beta = betaMat.length > 0 ? betaMat.flat() : null;
 
     if (!beta) {
-      s = stepLog.addStep('Ошибка', 'Не удалось решить нормальные уравнения (вырожденная XᵀX)', null, blasCmd);
+      s = stepLog.addStep('Ошибка', 'Не удалось решить нормальные уравнения (матрица XᵀX вырождена — строки данных линейно зависимы)', null, blasCmd);
       await stepLog.showStep(s);
       return null;
     }
 
-    s = stepLog.addStep('Решение через LAPACKE_dgesv',
-      `Коэффициенты β = [${beta.map(fmtNum).join(', ')}]`, null, blasCmd);
+    let solveHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Решаем систему линейных уравнений и получаем коэффициенты β:</div>';
+    solveHtml += '<div class="sol-vec">';
+    const coefNames = ['β₀ (свободный член)', ...Array.from({ length: m }, (_, i) => `β${i + 1} (при x${i + 1})`)];
+    for (let i = 0; i < p; i++) {
+      solveHtml += `<div class="sol-item">${coefNames[i]} = <strong>${fmtNum(beta[i])}</strong></div>`;
+    }
+    solveHtml += '</div>';
+    s = stepLog.addStep('Шаг 4 · Решение системы (LAPACKE_dgesv)',
+      `Решаем (XᵀX)β = Xᵀy — систему ${p} уравнений с ${p} неизвестными:`, solveHtml, blasCmd);
     await stepLog.showStep(s);
 
     /* ── Compute predictions, residuals, R² ── */
@@ -107,7 +126,24 @@ export default {
     const RMSE = Math.sqrt(ssRes / N);
     const MAE = residuals.reduce((a, v) => a + Math.abs(v), 0) / N;
 
-    /* ── Verification: compute ‖Xβ - y‖ via BLAS dgemv ── */
+    /* ── Step 5: Predictions table ── */
+    const predCols = Array.from({ length: m }, (_, j) => ({ name: `x${j + 1}`, group: 'x' }))
+      .concat({ name: 'y', group: 'y' }, { name: 'ŷ', group: 'y' }, { name: 'остаток', group: 'y' });
+    const predRows = [];
+    for (let i = 0; i < N; i++) {
+      const vals = points[i].xs.map(v => fmtNum(v));
+      vals.push(fmtNum(y[i]), fmtNum(yPred[i]));
+      const ri = residuals[i];
+      const rColor = Math.abs(ri) < 1e-10 ? 'var(--teal)' : '';
+      vals.push(`<span${rColor ? ` style="color:${rColor}"` : ''}>${fmtNum(ri)}</span>`);
+      predRows.push({ values: vals, yStart: m });
+    }
+    let predHtml = buildRegTable(predCols, predRows);
+    s = stepLog.addStep('Шаг 5 · Прогнозы и остатки',
+      `Подставляем найденные β в модель для каждого наблюдения:`, predHtml);
+    await stepLog.showStep(s);
+
+    /* ── Step 6: Verification via dgemv ── */
     const flatX = [];
     for (let i = 0; i < N; i++)
       for (let j = 0; j < p; j++)
@@ -123,28 +159,44 @@ export default {
       verifyNorm = Math.sqrt(verifyNorm);
     }
 
-    /* Result step */
-    const coefNames = ['β₀ (intercept)', ...Array.from({ length: m }, (_, i) => `β${i + 1} (x${i + 1})`)];
-    let solHtml = '<div class="solution"><h3>Модель:</h3>';
-    solHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1rem;margin:0.5rem 0">y = ${fmtNum(beta[0])}`;
+    /* ── Step 6: Final result ── */
+    let resultHtml = '<div class="solution">';
+
+    /* Equation */
+    resultHtml += '<div style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">Уравнение регрессии</div>';
+    resultHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--text-heading);margin-bottom:0.75rem;line-height:1.6">y = ${fmtNum(beta[0])}`;
     for (let i = 1; i < p; i++) {
-      solHtml += ` ${beta[i] >= 0 ? '+' : '−'} ${fmtNum(Math.abs(beta[i]))}·x${i}`;
+      resultHtml += ` ${beta[i] >= 0 ? '+' : '−'} ${fmtNum(Math.abs(beta[i]))}·x${i}`;
     }
-    solHtml += '</div></div>';
+    resultHtml += '</div>';
 
-    solHtml += '<div class="sol-vec" style="margin-top:0.75rem">';
-    for (let i = 0; i < p; i++)
-      solHtml += `<div class="sol-item">${coefNames[i]} = <strong>${fmtNum(beta[i])}</strong></div>`;
-    solHtml += '</div>';
+    /* Coefficients */
+    resultHtml += '<div class="sol-vec" style="margin-bottom:0.75rem">';
+    for (let i = 0; i < p; i++) {
+      resultHtml += `<div class="sol-item">${coefNames[i]} = <strong>${fmtNum(beta[i])}</strong></div>`;
+    }
+    resultHtml += '</div>';
 
-    solHtml += `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">R² = ${R2.toFixed(6)}, RMSE = ${RMSE.toFixed(6)}, MAE = ${MAE.toFixed(6)}</div>`;
+    /* Metrics */
+    resultHtml += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem">';
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">R² = </span><strong style="color:var(--teal);font-family:'JetBrains Mono',monospace">${R2.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">RMSE = </span><strong style="font-family:'JetBrains Mono',monospace">${RMSE.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">MAE = </span><strong style="font-family:'JetBrains Mono',monospace">${MAE.toFixed(6)}</strong></div>`;
+    resultHtml += '</div>';
 
+    /* R² interpretation */
+    const r2pct = (R2 * 100).toFixed(2);
+    resultHtml += `<div style="font-size:0.88rem;color:var(--text-muted);line-height:1.5">Модель объясняет <strong style="color:var(--text-heading)">${r2pct}%</strong> дисперсии целевой переменной.</div>`;
+
+    /* Verification */
     if (xBeta) {
       const ok = verifyNorm < 1e-4;
-      solHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}">Проверка ‖Xβ − y‖ = ${fmtNum(verifyNorm)} через dgemv — ${ok ? 'совпадает' : 'расхождение'}</div>`;
+      resultHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}" style="margin-top:0.5rem">Проверка ‖Xβ − y‖ = ${fmtNum(verifyNorm)} через dgemv — ${ok ? 'совпадает ✓' : 'расхождение ✗'}</div>`;
     }
 
-    s = stepLog.addStep('Результат', null, solHtml, gemvCmd);
+    resultHtml += '</div>';
+
+    s = stepLog.addStep('Результат', null, resultHtml, gemvCmd);
     await stepLog.showStep(s);
 
     /* ── Return chart data ── */

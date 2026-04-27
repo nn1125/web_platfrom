@@ -1,23 +1,9 @@
-import { fmtNum, parseVec } from '../../../utils/solverUtils';
+import { fmtNum, parseVec, parseMat, buildRegTable } from '../../../utils/solverUtils';
+import { buildFunction } from '../../../utils/mathCore';
 
 /* ── Parse basis function expression to callable ── */
 function buildBasis(expr, m) {
-  const varNames = Array.from({ length: m }, (_, i) => `x${i + 1}`);
-  let body = expr.trim()
-    .replace(/\^/g, '**')
-    .replace(/\bsin\b/g, 'Math.sin')
-    .replace(/\bcos\b/g, 'Math.cos')
-    .replace(/\btan\b/g, 'Math.tan')
-    .replace(/\bexp\b/g, 'Math.exp')
-    .replace(/\blog\b/g, 'Math.log')
-    .replace(/\bln\b/g, 'Math.log')
-    .replace(/\bsqrt\b/g, 'Math.sqrt')
-    .replace(/\babs\b/g, 'Math.abs')
-    .replace(/\bpow\b/g, 'Math.pow')
-    .replace(/\bPI\b/g, 'Math.PI')
-    .replace(/\bpi\b/g, 'Math.PI')
-    .replace(/\bE\b(?!\d)/g, 'Math.E');
-  return new Function(...varNames, `"use strict"; return (${body});`);
+  return buildFunction(expr.trim(), m);
 }
 
 export default {
@@ -26,16 +12,11 @@ export default {
   prefix: 'lstsq',
   exampleFeatures: 1,
   exampleData: [
-    { xs: [0.0], y: 1.00 },
-    { xs: [0.5], y: 1.65 },
-    { xs: [1.0], y: 2.72 },
-    { xs: [1.5], y: 4.48 },
-    { xs: [2.0], y: 7.39 },
-    { xs: [2.5], y: 12.18 },
-    { xs: [3.0], y: 20.09 },
-    { xs: [3.5], y: 33.12 },
-    { xs: [4.0], y: 54.60 },
-    { xs: [4.5], y: 90.02 },
+    { xs: [0], y: 1 },
+    { xs: [1], y: 3 },
+    { xs: [2], y: 7 },
+    { xs: [3], y: 20 },
+    { xs: [4], y: 55 },
   ],
   extraParams: [
     {
@@ -92,31 +73,33 @@ export default {
     /* ── Step log ── */
     stepLog.show();
 
-    let s = stepLog.addStep('Исходные данные',
-      `Число наблюдений: N = ${N}<br>Число базисных функций: p = ${p}<br><br>` +
-      `Модель: y = ${basisExprs.map((e, i) => `c${i + 1}·(${e})`).join(' + ')}<br><br>` +
-      `Задача: min ‖Ac − b‖², A ∈ ℝ<sup>${N}×${p}</sup>`);
+    /* ── Step 1: Input data ── */
+    const dataCols = Array.from({ length: m }, (_, i) => ({ name: `x${i + 1}`, group: 'x' })).concat({ name: 'y', group: 'y' });
+    const dataRows = points.map(pt => ({
+      values: pt.xs.map(v => fmtNum(v)).concat(fmtNum(pt.y)),
+      yStart: m,
+    }));
+    let s = stepLog.addStep('Шаг 1 · Исходные данные',
+      `Наблюдений: <strong>${N}</strong>, базисных функций: <strong>${p}</strong><br>` +
+      `Модель: y = ${basisExprs.map((e, i) => `c<sub>${i + 1}</sub>·(${e})`).join(' + ')}<br>` +
+      `Задача: min ‖Ac − b‖²`,
+      buildRegTable(dataCols, dataRows));
     await stepLog.showStep(s);
 
-    /* Show design matrix A (if small) */
+    /* ── Step 2: Design matrix A ── */
     if (N <= 12 && p <= 8) {
-      let matHtml = '<table class="aug-matrix"><tbody>';
-      for (let i = 0; i < N; i++) {
-        matHtml += '<tr>';
-        for (let j = 0; j < p; j++) matHtml += `<td>${fmtNum(A[i][j])}</td>`;
-        matHtml += `<td class="aug-sep">${fmtNum(b[i])}</td>`;
-        matHtml += '</tr>';
-      }
-      matHtml += '</tbody></table>';
-      s = stepLog.addStep('Матрица плана A | b', null, matHtml);
+      const desCols = basisExprs.map(e => ({ name: e, group: 'x' })).concat({ name: 'y', group: 'y' });
+      const desRows = A.map((row, i) => ({
+        values: row.map(v => fmtNum(v)).concat(fmtNum(b[i])),
+        yStart: p,
+      }));
+      s = stepLog.addStep('Шаг 2 · Матрица плана A | b',
+        `A ∈ ℝ<sup>${N}×${p}</sup> — каждый столбец = базисная функция на данных:`,
+        buildRegTable(desCols, desRows));
       await stepLog.showStep(s);
     }
 
-    /* ── Method 1: QR decomposition via BLAS ──
-       Solve via normal equations using dgesv, then verify via QR.
-       (We compute AᵀA and Aᵀb, solve, then also do QR for comparison) */
-
-    /* Normal equations: AᵀA · c = Aᵀb */
+    /* ── Normal equations: AᵀA · c = Aᵀb ── */
     const AtA = Array.from({ length: p }, () => new Array(p).fill(0));
     const Atb = new Array(p).fill(0);
     for (let i = 0; i < p; i++) {
@@ -130,21 +113,20 @@ export default {
       Atb[i] = sv;
     }
 
+    /* ── Step 3: Normal equations ── */
     if (p <= 8) {
-      let matHtml = '<table class="aug-matrix"><tbody>';
-      for (let i = 0; i < p; i++) {
-        matHtml += '<tr>';
-        for (let j = 0; j < p; j++) matHtml += `<td>${fmtNum(AtA[i][j])}</td>`;
-        matHtml += `<td class="aug-sep">${fmtNum(Atb[i])}</td>`;
-        matHtml += '</tr>';
-      }
-      matHtml += '</tbody></table>';
-      s = stepLog.addStep('Нормальные уравнения AᵀA · c = Aᵀb',
-        `Размер AᵀA: ${p} × ${p}`, matHtml);
+      const neqCols = Array.from({ length: p }, (_, j) => ({ name: `c${j + 1}`, group: 'x' })).concat({ name: 'Aᵀb', group: 'y' });
+      const neqRows = AtA.map((row, i) => ({
+        values: row.map(v => fmtNum(v)).concat(fmtNum(Atb[i])),
+        yStart: p,
+      }));
+      s = stepLog.addStep('Шаг 3 · Нормальные уравнения AᵀA · c = Aᵀb',
+        `Размер AᵀA: ${p} × ${p}`,
+        buildRegTable(neqCols, neqRows));
       await stepLog.showStep(s);
     }
 
-    /* Solve AᵀA · c = Aᵀb via dgesv */
+    /* ── Step 4: Solve via dgesv ── */
     const flatAtA = [];
     for (let i = 0; i < p; i++)
       for (let j = 0; j < p; j++)
@@ -152,7 +134,8 @@ export default {
 
     const blasCmd1 = `dgesv ${p} 1 ${flatAtA.join(' ')} ${Atb.map(fmtNum).join(' ')}`;
     const blasOut1 = runBlas(blasCmd1);
-    const cNormal = parseVec(blasOut1);
+    const cNormalMat = parseMat(blasOut1);
+    const cNormal = cNormalMat.length > 0 ? cNormalMat.flat() : null;
 
     if (!cNormal) {
       s = stepLog.addStep('Ошибка',
@@ -161,25 +144,28 @@ export default {
       return null;
     }
 
-    s = stepLog.addStep('Решение (нормальные уравнения)',
-      `c = [${cNormal.map(fmtNum).join(', ')}]`, null, blasCmd1);
+    let solveHtml = '<div style="margin-bottom:0.4rem;color:var(--text-muted);font-size:0.85rem">Найденные коэффициенты:</div>';
+    solveHtml += '<div class="sol-vec">';
+    for (let i = 0; i < p; i++) {
+      solveHtml += `<div class="sol-item">c<sub>${i + 1}</sub> (${basisExprs[i]}) = <strong>${fmtNum(cNormal[i])}</strong></div>`;
+    }
+    solveHtml += '</div>';
+
+    s = stepLog.addStep('Шаг 4 · Решение системы (LAPACKE_dgesv)',
+      `Решаем нормальные уравнения ${p}×${p}:`, solveHtml, blasCmd1);
     await stepLog.showStep(s);
 
-    /* ── Method 2: QR-based solution via Householder ── */
-    /* Compute QR of A (N×p) in pure JS, solve R·c = Qᵀb */
+    /* ── QR-based solution via Gram-Schmidt ── */
     const Q = A.map(r => [...r]);
     const R = Array.from({ length: p }, () => new Array(p).fill(0));
 
-    /* Gram-Schmidt */
     for (let j = 0; j < p; j++) {
-      /* Orthogonalize column j against previous columns */
       for (let k = 0; k < j; k++) {
         let dot = 0;
         for (let i = 0; i < N; i++) dot += Q[i][k] * Q[i][j];
         R[k][j] = dot;
         for (let i = 0; i < N; i++) Q[i][j] -= dot * Q[i][k];
       }
-      /* Normalize */
       let nrm = 0;
       for (let i = 0; i < N; i++) nrm += Q[i][j] ** 2;
       nrm = Math.sqrt(nrm);
@@ -189,7 +175,6 @@ export default {
       }
     }
 
-    /* Qᵀb */
     const Qtb = new Array(p).fill(0);
     for (let j = 0; j < p; j++) {
       let sv = 0;
@@ -197,7 +182,6 @@ export default {
       Qtb[j] = sv;
     }
 
-    /* Back-substitution: R·c = Qᵀb */
     const cQR = new Array(p).fill(0);
     for (let i = p - 1; i >= 0; i--) {
       let sv = Qtb[i];
@@ -205,35 +189,31 @@ export default {
       cQR[i] = Math.abs(R[i][i]) > 1e-14 ? sv / R[i][i] : 0;
     }
 
-    /* Show R matrix */
+    /* ── Step 5: QR verification ── */
     if (p <= 8) {
-      let rHtml = '<table class="aug-matrix"><tbody>';
-      for (let i = 0; i < p; i++) {
-        rHtml += '<tr>';
-        for (let j = 0; j < p; j++) {
-          const cls = i === j ? 'cell-pivot' : (i < j ? '' : 'cell-elim');
-          rHtml += `<td class="${cls}">${fmtNum(R[i][j])}</td>`;
-        }
-        rHtml += `<td class="aug-sep">${fmtNum(Qtb[i])}</td>`;
-        rHtml += '</tr>';
-      }
-      rHtml += '</tbody></table>';
-      s = stepLog.addStep('QR-разложение (Грам-Шмидт)',
-        `R · c = Qᵀb<br>c<sub>QR</sub> = [${cQR.map(fmtNum).join(', ')}]`, rHtml);
+      const rCols = Array.from({ length: p }, (_, j) => ({ name: `R${j + 1}`, group: 'x' })).concat({ name: 'Qᵀb', group: 'y' });
+      const rRows = R.map((row, i) => ({
+        values: row.map(v => fmtNum(v)).concat(fmtNum(Qtb[i])),
+        yStart: p,
+      }));
+      let qrHtml = buildRegTable(rCols, rRows);
+
+      let diffNorm = 0;
+      for (let i = 0; i < p; i++) diffNorm += (cNormal[i] - cQR[i]) ** 2;
+      diffNorm = Math.sqrt(diffNorm);
+
+      qrHtml += `<div style="margin-top:0.5rem;font-size:0.88rem">` +
+        `c<sub>QR</sub> = [${cQR.map(fmtNum).join(', ')}]<br>` +
+        `‖c<sub>normal</sub> − c<sub>QR</sub>‖ = ${diffNorm.toExponential(2)} — ` +
+        (diffNorm < 1e-6
+          ? '<span style="color:var(--teal)">решения совпадают ✓</span>'
+          : '<span style="color:#b45309">⚠ различие — плохая обусловленность AᵀA</span>') +
+        '</div>';
+
+      s = stepLog.addStep('Шаг 5 · QR-разложение (Грам-Шмидт)',
+        `Верхнетреугольная матрица R · c = Qᵀb:`, qrHtml);
       await stepLog.showStep(s);
     }
-
-    /* Compare both solutions */
-    let diffNorm = 0;
-    for (let i = 0; i < p; i++) diffNorm += (cNormal[i] - cQR[i]) ** 2;
-    diffNorm = Math.sqrt(diffNorm);
-
-    s = stepLog.addStep('Сравнение методов',
-      `‖c<sub>normal</sub> − c<sub>QR</sub>‖ = ${diffNorm.toExponential(2)}<br>` +
-      (diffNorm < 1e-6
-        ? '<span style="color:var(--teal)">Решения совпадают</span>'
-        : '<span style="color:#b45309">⚠ Различие может указывать на плохую обусловленность AᵀA</span>'));
-    await stepLog.showStep(s);
 
     /* Use normal equations result */
     const c = cNormal;
@@ -257,6 +237,29 @@ export default {
     const RMSE = Math.sqrt(ssRes / N);
     const residNorm = Math.sqrt(ssRes);
 
+    /* ── Step 6: Predictions ── */
+    const predCols = [
+      ...Array.from({ length: m }, (_, i) => ({ name: `x${i + 1}`, group: 'x' })),
+      { name: 'y', group: 'y' }, { name: 'ŷ', group: 'y' }, { name: 'остаток', group: 'y' },
+    ];
+    const predRows = [];
+    for (let i = 0; i < N; i++) {
+      const ri = residuals[i];
+      const rColor = Math.abs(ri) < 1e-10 ? 'var(--teal)' : '';
+      predRows.push({
+        values: [
+          ...points[i].xs.map(v => fmtNum(v)),
+          fmtNum(b[i]), fmtNum(yPred[i]),
+          `<span${rColor ? ` style="color:${rColor}"` : ''}>${fmtNum(ri)}</span>`,
+        ],
+        yStart: m,
+      });
+    }
+    s = stepLog.addStep('Шаг 6 · Предсказания и остатки',
+      `Подставляем данные в модель:`,
+      buildRegTable(predCols, predRows));
+    await stepLog.showStep(s);
+
     /* ── Verification via BLAS dgemv ── */
     const flatA = [];
     for (let i = 0; i < N; i++)
@@ -273,30 +276,35 @@ export default {
       verifyNorm = Math.sqrt(verifyNorm);
     }
 
-    /* Build model string */
+    /* ── Step 7: Result ── */
     let eqStr = basisExprs.map((e, i) => {
       const sign = i > 0 && c[i] >= 0 ? ' + ' : (i > 0 ? ' − ' : '');
       const val = i > 0 ? fmtNum(Math.abs(c[i])) : fmtNum(c[i]);
       return `${sign}${val}·(${e})`;
     }).join('');
 
-    let solHtml = '<div class="solution"><h3>Модель:</h3>';
-    solHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:0.9rem;margin:0.5rem 0;word-break:break-all">y = ${eqStr}</div>`;
-    solHtml += '</div>';
+    let resultHtml = '<div class="solution">';
+    resultHtml += '<div style="font-size:0.82rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.3rem">Метод наименьших квадратов</div>';
+    resultHtml += `<div style="font-family:'JetBrains Mono',monospace;font-size:1.05rem;color:var(--text-heading);margin-bottom:0.75rem;line-height:1.6;word-break:break-all">y = ${eqStr}</div>`;
 
-    solHtml += '<div class="sol-vec" style="margin-top:0.75rem">';
+    resultHtml += '<div class="sol-vec" style="margin-bottom:0.75rem">';
     for (let i = 0; i < p; i++)
-      solHtml += `<div class="sol-item">c<sub>${i + 1}</sub> (${basisExprs[i]}) = <strong>${fmtNum(c[i])}</strong></div>`;
-    solHtml += '</div>';
+      resultHtml += `<div class="sol-item">c<sub>${i + 1}</sub> (${basisExprs[i]}) = <strong>${fmtNum(c[i])}</strong></div>`;
+    resultHtml += '</div>';
 
-    solHtml += `<div style="margin-top:0.75rem;font-size:0.9rem;color:var(--text-muted)">‖Ac − b‖ = ${fmtNum(residNorm)}, R² = ${R2.toFixed(6)}, RMSE = ${RMSE.toFixed(6)}</div>`;
+    resultHtml += '<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.75rem">';
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">R² = </span><strong style="color:var(--teal);font-family:'JetBrains Mono',monospace">${R2.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">RMSE = </span><strong style="font-family:'JetBrains Mono',monospace">${RMSE.toFixed(6)}</strong></div>`;
+    resultHtml += `<div><span style="font-size:0.78rem;color:var(--text-muted)">‖Ac − b‖ = </span><strong style="font-family:'JetBrains Mono',monospace">${fmtNum(residNorm)}</strong></div>`;
+    resultHtml += '</div>';
 
     if (Ac) {
       const ok = Math.abs(verifyNorm - residNorm) < 1e-4;
-      solHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}">Проверка через dgemv: ‖Ac − b‖ = ${fmtNum(verifyNorm)} — ${ok ? 'совпадает' : 'расхождение'}</div>`;
+      resultHtml += `<div class="verify ${ok ? 'verify--ok' : 'verify--fail'}">Проверка через dgemv: ‖Ac − b‖ = ${fmtNum(verifyNorm)} — ${ok ? 'совпадает ✓' : 'расхождение'}</div>`;
     }
+    resultHtml += '</div>';
 
-    s = stepLog.addStep('Результат', null, solHtml, gemvCmd);
+    s = stepLog.addStep('Результат', null, resultHtml, gemvCmd);
     await stepLog.showStep(s);
 
     /* ── Chart data ── */
