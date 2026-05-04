@@ -205,7 +205,7 @@ async function solve1D(points, lambda, bc, runBlas, stepLog) {
     /* ── Evaluate spline ── */
     function evalSpline(xv) {
       let seg = 0;
-      for (let i = 0; i < n - 1; i++) {
+      for (let i = 0; i < n; i++) {
         if (xv >= x[i]) seg = i;
       }
       const dx = xv - x[seg];

@@ -32,10 +32,12 @@ function gmresInner(A, b, x0, n, m, eps) {
     }
     H[k + 1][k] = vecNorm(w);
 
-    if (Math.abs(H[k + 1][k]) < 1e-14) { k++; break; }
+    const breakdown = Math.abs(H[k + 1][k]) < 1e-14;
 
-    V[k + 1] = new Array(n);
-    for (let i = 0; i < n; i++) V[k + 1][i] = w[i] / H[k + 1][k];
+    if (!breakdown) {
+      V[k + 1] = new Array(n);
+      for (let i = 0; i < n; i++) V[k + 1][i] = w[i] / H[k + 1][k];
+    }
 
     for (let j = 0; j < k; j++) {
       const temp = cs[j] * H[j][k] + sn[j] * H[j + 1][k];
@@ -44,6 +46,7 @@ function gmresInner(A, b, x0, n, m, eps) {
     }
 
     const hyp = Math.sqrt(H[k][k] * H[k][k] + H[k + 1][k] * H[k + 1][k]);
+    if (hyp < 1e-14) { k++; break; }
     cs[k] = H[k][k] / hyp;
     sn[k] = H[k + 1][k] / hyp;
 
@@ -56,7 +59,7 @@ function gmresInner(A, b, x0, n, m, eps) {
 
     residuals.push(Math.abs(g[k + 1]));
 
-    if (Math.abs(g[k + 1]) < eps) { k++; break; }
+    if (breakdown || Math.abs(g[k + 1]) < eps) { k++; break; }
   }
 
   const kk = k;

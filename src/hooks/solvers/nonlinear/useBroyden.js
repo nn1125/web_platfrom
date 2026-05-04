@@ -80,10 +80,11 @@ export default {
       const xNew = x.map((v, i) => v + dx[i]);
       const FNew = evalF(funcs, xNew);
       const dF = FNew.map((v, i) => v - F[i]);
+      const Bused = B.map(r => [...r]);
       B = broydenUpdate(B, dx, dF, n);
 
       history.push({
-        B: B.map(r => [...r]), dx: [...dx], negF: [...negF],
+        B: Bused, dx: [...dx], negF: [...negF],
         x: [...xNew], F: [...FNew],
         fnorm: vecNorm(FNew), dxnorm: vecNorm(dx),
       });
@@ -109,9 +110,10 @@ export default {
         const xNew = x.map((v, i) => v + dx[i]);
         const FNew = evalF(funcs, xNew);
         const dF = FNew.map((v, i) => v - F[i]);
+        const Bused = B.map(r => [...r]);
         B = broydenUpdate(B, dx, dF, n);
         history.push({
-          B: B.map(r => [...r]), dx: [...dx], negF: [...negF],
+          B: Bused, dx: [...dx], negF: [...negF],
           x: [...xNew], F: [...FNew],
           fnorm: vecNorm(FNew), dxnorm: vecNorm(dx),
         });
