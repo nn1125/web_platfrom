@@ -1072,28 +1072,77 @@
     animation: chartsAppear 0.5s ease-out both;
 }
 
-/* ── Responsive ── */
+/* ── Tablet ── */
+@media (max-width: 1024px) and (min-width: 601px) {
+    .gauss-page { padding: 1.5rem 1.25rem 3rem; max-width: 100%; }
+    .input-section, .interactive-section { padding: 1.25rem; }
+    .matrix-table input { width: 56px; font-size: 0.88rem; padding: 0.3rem 0.35rem; }
+    .matrix-input-wrap { gap: 0.75rem; }
+    .imat-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .imat-table { font-size: 0.88rem; }
+    .imat-cell { padding: 0.4rem 0.6rem; min-width: 50px; }
+    .aug-matrix { font-size: 0.82rem; }
+    .aug-matrix td { padding: 0.25rem 0.5rem; }
+    .reg-table__input { min-width: 54px; font-size: 0.88rem; }
+    .nls-jac__cell { min-width: 56px; padding: 0.35rem 0.55rem; font-size: 0.82rem; }
+    .nls-metrics { gap: 0.5rem; }
+    .nls-metric { min-width: 95px; }
+}
+
+/* ── Mobile ── */
 @media (max-width: 600px) {
-    .gauss-page { padding: 1rem 0.75rem 3rem; }
-    .matrix-table input { width: 52px; font-size: 0.82rem; }
-    .matrix-input-wrap { gap: 0.5rem; }
-    .eq-sign { font-size: 1rem; }
-    .step { padding: 1rem; }
-    .aug-matrix td { padding: 0.2rem 0.35rem; font-size: 0.78rem; }
-    .imat-table { font-size: 0.82rem; }
-    .imat-cell { padding: 0.35rem 0.5rem; min-width: 44px; }
-    .imat-toolbar { flex-direction: column; align-items: flex-start; }
-    .imat-op-label { font-size: 0.8rem; }
-    .imat-iter-row { flex-wrap: wrap; gap: 0.3rem; font-size: 0.78rem; }
-    .imat-iter-label { min-width: 30px; }
-    .reg-table__input { min-width: 48px; font-size: 0.82rem; }
-    .reg-table__del { font-size: 0.9rem; }
-    .nls-metrics { gap: 0.4rem; }
-    .nls-metric { min-width: 80px; padding: 0.4rem 0.6rem; }
-    .nls-metric__value { font-size: 0.82rem; }
-    .nls-vec { font-size: 0.78rem; flex-wrap: wrap; }
-    .nls-system__eq { font-size: 0.82rem; flex-wrap: wrap; }
-    .nls-jac__cell { min-width: 48px; padding: 0.3rem 0.45rem; font-size: 0.78rem; }
-    .nls-jac__col-hdr { font-size: 0.65rem; padding: 0.15rem 0.3rem; }
-    .nls-jac__row-hdr { font-size: 0.68rem; }
+    .gauss-page { padding: 1rem 0.6rem 3rem; max-width: 100%; }
+    .input-section, .interactive-section { padding: 0.9rem; border-radius: 12px; }
+    .input-section { overflow-x: auto; }
+    .size-row { gap: 0.5rem; }
+    .size-row input { width: 50px; padding: 0.35rem 0.4rem; font-size: 0.88rem; }
+    .size-row label { font-size: 0.88rem; }
+    .matrix-table input { width: 40px; font-size: 0.78rem; padding: 0.25rem 0.2rem; border-radius: 4px; }
+    .matrix-table td { padding: 1px; }
+    .matrix-input-wrap { gap: 0.4rem; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.5rem; }
+    .matrix-input-wrap > div { flex-shrink: 0; }
+    .matrix-input-wrap h3 { font-size: 0.78rem; margin-bottom: 0.35rem; }
+    .eq-sign { font-size: 0.95rem; padding-top: 1rem; }
+    .step { padding: 0.85rem; }
+    .step__title { font-size: 0.88rem; }
+    .step__detail { font-size: 0.82rem; }
+    .step__blas { font-size: 0.74rem; padding: 0.4rem 0.55rem; }
+    .aug-matrix { font-size: 0.72rem; }
+    .aug-matrix td { padding: 0.18rem 0.3rem; }
+    .imat-container { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0.25rem 0; }
+    .imat-table { font-size: 0.74rem; margin: 0; }
+    .imat-cell { padding: 0.3rem 0.4rem; min-width: 36px; }
+    .imat-label { padding: 0.35rem 0.4rem; font-size: 0.7rem; }
+    .imat-sep { padding-left: 0.5rem; }
+    .imat-toolbar { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+    .imat-controls { flex-wrap: wrap; gap: 0.5rem; }
+    .imat-op-label { font-size: 0.74rem; padding: 0.3rem 0.55rem; }
+    .imat-iter-row { flex-wrap: wrap; gap: 0.3rem; font-size: 0.74rem; padding: 0.3rem 0.55rem; }
+    .imat-iter-label { min-width: 28px; font-size: 0.74rem; }
+    .imat-iter-norm { font-size: 0.7rem; width: 100%; }
+    .reg-table-wrap { -webkit-overflow-scrolling: touch; }
+    .reg-table__input { min-width: 42px; font-size: 0.78rem; padding: 0.3rem 0.3rem; }
+    .reg-table__cell { padding: 2px 2px; }
+    .reg-table__group-header { font-size: 0.66rem; padding: 0.4rem 0.4rem 0.1rem; }
+    .reg-table__col-name { padding: 0.05rem 0.35rem 0.35rem; font-size: 0.74rem; }
+    .reg-table__idx { font-size: 0.7rem; padding: 0.25rem 0.3rem; width: 24px; }
+    .reg-table__corner { width: 22px; padding: 0.2rem 0.3rem; }
+    .reg-table__del { font-size: 0.9rem; padding: 0.2rem 0.3rem; }
+    .nls-table__label { padding: 0.3rem 0.4rem; font-size: 0.78rem; width: 32px; }
+    .nls-table__suffix { padding: 0.3rem 0.4rem; font-size: 0.74rem; width: 32px; }
+    .nls-table__hint { font-size: 0.68rem; padding: 0.1rem 0.5rem 0.35rem; }
+    .nls-metrics { gap: 0.35rem; }
+    .nls-metric { min-width: 70px; padding: 0.35rem 0.5rem; }
+    .nls-metric__label { font-size: 0.62rem; }
+    .nls-metric__value { font-size: 0.76rem; }
+    .nls-vec { font-size: 0.72rem; flex-wrap: wrap; padding: 0.3rem 0.5rem; }
+    .nls-vec__label { min-width: 26px; font-size: 0.72rem; }
+    .nls-system__eq { font-size: 0.76rem; flex-wrap: wrap; padding: 0.35rem 0.55rem; }
+    .nls-jac__cell { min-width: 42px; padding: 0.25rem 0.35rem; font-size: 0.72rem; }
+    .nls-jac__col-hdr { font-size: 0.62rem; padding: 0.1rem 0.25rem; }
+    .nls-jac__row-hdr { font-size: 0.66rem; padding-right: 0.35rem; }
+    .nls-jac { gap: 3px; }
+    .backsub-toggle-btn { font-size: 0.82rem !important; padding: 0.4rem 0.95rem !important; }
+    .sol-vec { gap: 0.7rem; }
+    .sol-item { font-size: 0.95rem; }
 }

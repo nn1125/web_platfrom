@@ -1,4 +1,5 @@
-import { useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
+import { useRef, useState, useCallback, useImperativeHandle, forwardRef, useEffect } from 'react';
+import { useViewport, maxMatrixSize } from '../../hooks/useViewport';
 
 const MatrixInput = forwardRef(function MatrixInput({ prefix, defaultSize, matrixLabel, extraParams, onSolve, solveDisabled, onExample }, ref) {
   const sizeRef = useRef(null);
@@ -6,6 +7,8 @@ const MatrixInput = forwardRef(function MatrixInput({ prefix, defaultSize, matri
   const vecBRef = useRef(null);
   const extraRefs = useRef({});
   const [sizeError, setSizeError] = useState('');
+  const device = useViewport();
+  const maxSize = maxMatrixSize(device);
 
   const buildGrid = useCallback((n) => {
     const matA = matARef.current;
@@ -36,7 +39,7 @@ const MatrixInput = forwardRef(function MatrixInput({ prefix, defaultSize, matri
 
   const readInput = useCallback(() => {
     const n = parseInt(sizeRef.current?.value);
-    if (!n || n < 1 || n > 11) return null;
+    if (!n || n < 1 || n > maxSize) return null;
     const A = [], b = [];
     for (let i = 0; i < n; i++) {
       A[i] = [];
@@ -81,15 +84,26 @@ const MatrixInput = forwardRef(function MatrixInput({ prefix, defaultSize, matri
 
   const handleResize = () => {
     const n = parseInt(sizeRef.current?.value) || 3;
-    if (n > 11) {
-      setSizeError('Максимальная размерность матрицы — 11×11');
-      sizeRef.current.value = 11;
-      buildGrid(11);
+    if (n > maxSize) {
+      setSizeError(`Максимальная размерность матрицы для этого экрана — ${maxSize}×${maxSize}`);
+      sizeRef.current.value = maxSize;
+      buildGrid(maxSize);
       return;
     }
     setSizeError('');
     buildGrid(Math.max(1, n));
   };
+
+  useEffect(() => {
+    const cur = parseInt(sizeRef.current?.value) || 0;
+    if (cur > maxSize) {
+      sizeRef.current.value = maxSize;
+      setSizeError(`Размер уменьшен до ${maxSize}×${maxSize} для этого экрана`);
+      buildGrid(maxSize);
+    } else {
+      setSizeError('');
+    }
+  }, [maxSize, buildGrid]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleResize();

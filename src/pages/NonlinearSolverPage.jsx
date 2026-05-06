@@ -5,6 +5,7 @@ import Visualization from '../components/solver/Visualization';
 import StepLog from '../components/solver/StepLog';
 import WasmStatus from '../components/solver/WasmStatus';
 import AlertModal from '../components/ui/AlertModal';
+import { useViewport, maxNonlinearSize } from '../hooks/useViewport';
 
 export default function NonlinearSolverPage({ configLoader }) {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function NonlinearSolverPage({ configLoader }) {
   const stepLogRef = useRef(null);
   const skipRef = useRef(false);
   const extraRefs = useRef({});
+  const device = useViewport();
+  const maxSize = maxNonlinearSize(device);
 
   useEffect(() => {
     configLoader().then((mod) => setConfig(mod.default));
@@ -34,7 +37,7 @@ export default function NonlinearSolverPage({ configLoader }) {
   }, [config]);
 
   const handleResize = useCallback(() => {
-    const n = Math.max(1, Math.min(size, 10));
+    const n = Math.max(1, Math.min(size, maxSize));
     setSize(n);
     setEquations(prev => {
       const next = new Array(n).fill('');
@@ -46,7 +49,24 @@ export default function NonlinearSolverPage({ configLoader }) {
       for (let i = 0; i < Math.min(prev.length, n); i++) next[i] = prev[i];
       return next;
     });
-  }, [size]);
+  }, [size, maxSize]);
+
+  useEffect(() => {
+    if (size > maxSize) {
+      setSize(maxSize);
+      setEquations(prev => {
+        const next = new Array(maxSize).fill('');
+        for (let i = 0; i < Math.min(prev.length, maxSize); i++) next[i] = prev[i];
+        return next;
+      });
+      setInitGuess(prev => {
+        const next = new Array(maxSize).fill('');
+        for (let i = 0; i < Math.min(prev.length, maxSize); i++) next[i] = prev[i];
+        return next;
+      });
+      setAlertMsg(`Размер уменьшен до ${maxSize} уравнений для этого экрана`);
+    }
+  }, [maxSize, size]);
 
   const handleExample = useCallback(() => {
     if (!config) return;

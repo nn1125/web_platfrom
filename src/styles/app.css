@@ -795,8 +795,42 @@ body { padding-top: 68px; }
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .site-header { padding: 0 1.25rem; }
+  .hero { padding: 3rem 1.5rem 2.5rem; }
+  .page { padding: 0 0.5rem; }
+}
+
+@media (max-width: 700px) {
+  .site-header { padding: 0 0.85rem; height: 60px; }
+  body { padding-top: 60px; }
+  .site-header__logo { font-size: 1.05rem; gap: 0.35rem; }
+  .site-header__link { padding: 0.3rem 0.55rem; font-size: 0.8rem; }
+  .site-header__nav { gap: 0.1rem; }
+  .theme-toggle { width: 32px; height: 32px; }
+  .view { padding: 1.25rem 0.75rem; }
+  .hero { padding: 2.25rem 1rem 1.75rem; }
+  .hero__badge { font-size: 0.7rem; padding: 5px 12px; margin-bottom: 1.25rem; }
+  .hero__sub { font-size: 0.95rem; margin-bottom: 1.75rem; }
+  .hero__actions { gap: 1.25rem; margin-bottom: 2.25rem; }
+  .btn--glow { padding: 12px 24px; font-size: 0.95rem; }
+  .hero__stats { gap: 0.85rem; flex-wrap: wrap; justify-content: center; }
+  .hero__stat-num { font-size: 1.15rem; }
+  .hero__stat-label { font-size: 0.7rem; }
+  .hero__card { padding: 1.15rem; }
+  .about-panel { padding: 1.5rem; }
+  .about-panel h2 { font-size: 1.2rem; }
+  .about-panel p { font-size: 0.88rem; }
+}
+
 @media (max-width: 480px) {
   .modal__actions { flex-direction: column; }
   .category { padding: 1rem; }
   .hero-card { padding: 1.5rem; }
+  .site-header__logo span { display: none; }
+  .site-header__logo::after { content: 'Algo'; color: #c8e2ff; }
+  .hero__title-line { font-size: clamp(1.85rem, 9vw, 2.6rem); }
+  .modal { padding: 1.5rem; }
+  .modal__title { font-size: 1.15rem; }
+  .modal__desc { font-size: 0.9rem; }
 }

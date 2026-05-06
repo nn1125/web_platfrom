@@ -5,6 +5,7 @@ import StepLog from '../components/solver/StepLog';
 import WasmStatus from '../components/solver/WasmStatus';
 import AlertModal from '../components/ui/AlertModal';
 import { renderCharts } from '../utils/chartRenderer';
+import { useViewport, maxRegressionFeatures } from '../hooks/useViewport';
 
 export default function RegressionPage({ configLoader }) {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function RegressionPage({ configLoader }) {
   const chartsRef = useRef(null);
   const featuresRef = useRef(null);
   const extraRefs = useRef({});
+  const device = useViewport();
+  const maxFeatures = maxRegressionFeatures(device);
 
   useEffect(() => {
     configLoader().then((mod) => setConfig(mod.default));
@@ -34,10 +37,18 @@ export default function RegressionPage({ configLoader }) {
   }, [config]);
 
   const handleFeaturesChange = useCallback((m) => {
-    const newM = Math.max(1, Math.min(m, 5));
+    const newM = Math.max(1, Math.min(m, maxFeatures));
     setNumFeatures(newM);
     setRows(prev => prev.map(() => ({ xs: new Array(newM).fill(''), y: '' })));
-  }, []);
+  }, [maxFeatures]);
+
+  useEffect(() => {
+    if (numFeatures > maxFeatures) {
+      setNumFeatures(maxFeatures);
+      if (featuresRef.current) featuresRef.current.value = maxFeatures;
+      setRows(prev => prev.map(() => ({ xs: new Array(maxFeatures).fill(''), y: '' })));
+    }
+  }, [maxFeatures, numFeatures]);
 
   const addRow = useCallback(() => {
     setRows(prev => [...prev, { xs: new Array(numFeatures).fill(''), y: '' }]);
@@ -138,9 +149,9 @@ export default function RegressionPage({ configLoader }) {
             <input type="text" inputMode="numeric" ref={featuresRef} defaultValue={numFeatures}
               onChange={() => {
                 const v = parseInt(featuresRef.current.value);
-                if (v > 5) {
-                  featuresRef.current.value = '5';
-                  setAlertMsg('Максимум 5 признаков');
+                if (v > maxFeatures) {
+                  featuresRef.current.value = String(maxFeatures);
+                  setAlertMsg(`Максимум ${maxFeatures} признак${maxFeatures === 1 ? '' : maxFeatures < 5 ? 'а' : 'ов'} для этого экрана`);
                 }
               }}
               onKeyDown={e => { if (e.key === 'Enter') handleFeaturesChange(parseInt(featuresRef.current.value) || 1); }}
