@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "check:wasm": "node -e \"const fs=require('fs');const f=['shell_cblas.js','shell_cblas.wasm','shell_cblas.worker.js'];const m=f.filter(x=>!fs.existsSync('blas_wasm/'+x));if(m.length){console.error('Missing WASM artifacts in blas_wasm/: '+m.join(', ')+'. Run: bash blas_wasm/build.sh');process.exit(1)}\"",
+    "build:vite": "vite build",
+    "build:archive": "find dist -name .DS_Store -delete; tar --no-mac-metadata --no-xattrs -cf - dist | zstd -19 -f -o dist.tar.zst",
+    "build": "npm run check:wasm && npm run build:vite && npm run build:archive",
     "preview": "vite preview"
   },
   "repository": {

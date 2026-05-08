@@ -46,10 +46,6 @@ function NonlinearRoute({ solverKey }) {
   return <NonlinearSolverPage configLoader={nonlinearConfigs[solverKey]} />;
 }
 
-function ApproxRoute({ solverKey }) {
-  return <NonlinearSolverPage configLoader={approxConfigs[solverKey]} />;
-}
-
 function RegressionRoute({ solverKey }) {
   return <RegressionPage configLoader={approxConfigs[solverKey]} />;
 }
